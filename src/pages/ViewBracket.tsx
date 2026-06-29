@@ -15,6 +15,7 @@ import {
 import { abbrFor } from '../flags'
 import { leaderboard, scoreBracket } from '../scoring'
 import { useStore } from '../store'
+import { isAdminUnlocked } from '../util/admin'
 
 type PickStatus = 'correct' | 'wrong' | 'pending' | 'none'
 
@@ -87,6 +88,29 @@ export function ViewBracket() {
           </Anchor>
           .
         </Text>
+      </Stack>
+    )
+  }
+
+  // While locked, hide picks from everyone except the admin (whoever unlocked
+  // the admin gate). The organizer reveals them once all brackets are in.
+  if (results.locked === true && !isAdminUnlocked()) {
+    return (
+      <Stack gap="md">
+        <Title order={1}>{bracket.username}’s bracket</Title>
+        <Paper withBorder radius="md" p="xl" ta="center">
+          <Text fz={40}>🔒</Text>
+          <Text fw={600} mt="xs">
+            Picks are hidden
+          </Text>
+          <Text c="dimmed" size="sm" mt={4}>
+            Brackets stay private until everyone has submitted. The organizer will
+            reveal them — check back then.
+          </Text>
+          <Anchor component={Link} to="/" mt="md" style={{ display: 'inline-block' }}>
+            Back to the leaderboard
+          </Anchor>
+        </Paper>
       </Stack>
     )
   }

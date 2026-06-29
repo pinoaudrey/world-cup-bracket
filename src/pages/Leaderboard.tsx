@@ -1,4 +1,5 @@
 import {
+  Alert,
   Anchor,
   Button,
   Group,
@@ -12,6 +13,7 @@ import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { leaderboard } from '../scoring'
 import { useStore } from '../store'
+import { isAdminUnlocked } from '../util/admin'
 
 // Edit/Delete only matter for the admin working locally; the published
 // read-only site lists brackets as view-only.
@@ -26,9 +28,16 @@ export function Leaderboard() {
     [brackets, t, results],
   )
   const decided = Object.keys(results.winners).length
+  const picksHidden = results.locked === true && !isAdminUnlocked()
 
   return (
     <Stack gap="md">
+      {picksHidden && (
+        <Alert color="gray" variant="light" py="xs">
+          🔒 Picks are hidden until everyone has submitted — the organizer will
+          reveal all brackets.
+        </Alert>
+      )}
       <Group justify="space-between" align="flex-end">
         <div>
           <Title order={1}>Leaderboard</Title>

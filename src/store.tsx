@@ -36,6 +36,8 @@ interface StoreValue {
   getBracket: (username: string) => Bracket | undefined
   setWinner: (matchId: number, team: string) => void
   clearWinner: (matchId: number) => void
+  /** Lock/unlock pick visibility (hides picks from non-admins while locked). */
+  setLocked: (locked: boolean) => void
   importBrackets: (brackets: Brackets) => void
   importResults: (results: Results) => void
   /** Discard local edits and reload the committed (published) JSON. */
@@ -173,6 +175,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         // advancing team feeding it changed). pruneInvalid drops any
         // downstream winner that's no longer a valid real participant.
         return {
+          ...prev,
           winners: pruneInvalid({ ...prev.winners, [matchId]: team }, tournament),
         }
       })
@@ -186,11 +189,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const next = { ...prev.winners }
         delete next[matchId]
         // Clearing a result orphans downstream matchups too.
-        return { winners: tournament ? pruneInvalid(next, tournament) : next }
+        return { ...prev, winners: tournament ? pruneInvalid(next, tournament) : next }
       })
     },
     [tournament],
   )
+
+  const setLocked = useCallback((locked: boolean) => {
+    setResults((prev) => ({ ...prev, locked }))
+  }, [])
 
   const importBrackets = useCallback(
     (incoming: Brackets) => {
@@ -234,6 +241,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       getBracket,
       setWinner,
       clearWinner,
+      setLocked,
       importBrackets,
       importResults,
       resetToPublished,
@@ -249,6 +257,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       getBracket,
       setWinner,
       clearWinner,
+      setLocked,
       importBrackets,
       importResults,
       resetToPublished,

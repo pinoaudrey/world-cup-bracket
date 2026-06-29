@@ -34,4 +34,9 @@ export type Brackets = Bracket[]
 export interface Results {
   /** matchId -> actual winner (only completed matches) */
   winners: Record<number, string>
+  /**
+   * When true, picks are hidden from everyone except the admin until the
+   * organizer reveals them (e.g., until all brackets have been submitted).
+   */
+  locked?: boolean
 }

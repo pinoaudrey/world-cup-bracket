@@ -2,8 +2,10 @@ import {
   Anchor,
   Button,
   Group,
+  Paper,
   PasswordInput,
   Stack,
+  Switch,
   Text,
   Title,
 } from '@mantine/core'
@@ -20,6 +22,7 @@ import {
 } from '../components/BracketBoard'
 import { abbrFor } from '../flags'
 import { useStore } from '../store'
+import { ADMIN_UNLOCK_KEY } from '../util/admin'
 
 // Casual client-side gate to prevent accidental edits on the public site.
 // NOTE: this is NOT real security. The password ships in the static bundle and
@@ -27,11 +30,10 @@ import { useStore } from '../store'
 // the visitor's own localStorage. Published data only updates when the admin
 // exports JSON and commits it to the repo.
 const ADMIN_PASSWORD = 'WC26'
-const UNLOCK_KEY = 'wc2026.admin.unlocked'
 
 export function Admin() {
   const [unlocked, setUnlocked] = useState(
-    () => sessionStorage.getItem(UNLOCK_KEY) === '1',
+    () => sessionStorage.getItem(ADMIN_UNLOCK_KEY) === '1',
   )
   if (!unlocked) return <Gate onUnlock={() => setUnlocked(true)} />
   return <AdminPanel />
@@ -43,7 +45,7 @@ function Gate({ onUnlock }: { onUnlock: () => void }) {
   function submit(e: FormEvent) {
     e.preventDefault()
     if (value === ADMIN_PASSWORD) {
-      sessionStorage.setItem(UNLOCK_KEY, '1')
+      sessionStorage.setItem(ADMIN_UNLOCK_KEY, '1')
       onUnlock()
     } else {
       setBad(true)
@@ -82,8 +84,9 @@ function Gate({ onUnlock }: { onUnlock: () => void }) {
 }
 
 function AdminPanel() {
-  const { tournament, results, setWinner, clearWinner } = useStore()
+  const { tournament, results, setWinner, clearWinner, setLocked } = useStore()
   const t = tournament!
+  const locked = results.locked === true
 
   return (
     <Stack gap="lg">
@@ -100,6 +103,27 @@ function AdminPanel() {
             : ''}
         </Text>
       </div>
+
+      <Paper withBorder radius="md" p="md">
+        <Group justify="space-between" wrap="nowrap" align="flex-start">
+          <div>
+            <Title order={3}>Pick visibility</Title>
+            <Text c="dimmed" size="sm">
+              {locked
+                ? '🔒 Locked — everyone else sees “picks hidden” until you reveal. Use this until all brackets are submitted.'
+                : '🔓 Revealed — anyone can view all brackets.'}
+            </Text>
+          </div>
+          <Switch
+            size="lg"
+            checked={!locked}
+            onChange={(e) => setLocked(!e.currentTarget.checked)}
+            onLabel="Shown"
+            offLabel="Hidden"
+            aria-label="Reveal picks"
+          />
+        </Group>
+      </Paper>
 
       <div>
         <Title order={3}>Enter results</Title>
