@@ -193,10 +193,18 @@ function AdminPanel() {
             {msg}
           </Text>
         )}
-        <Text c="dimmed" size="xs" mt="xs">
-          To publish: export both files, drop them into <code>public/data/</code>,
-          commit, and push.
-        </Text>
+        {import.meta.env.DEV ? (
+          <Text c="green.8" size="xs" mt="xs" fw={600}>
+            Dev mode (localhost): your edits auto-save to{' '}
+            <code>public/data/brackets.json</code> and <code>results.json</code> —
+            no export needed, just commit &amp; push.
+          </Text>
+        ) : (
+          <Text c="dimmed" size="xs" mt="xs">
+            To publish: export both files, drop them into <code>public/data/</code>,
+            commit, and push.
+          </Text>
+        )}
       </Paper>
 
       <div>

@@ -14,24 +14,25 @@ fetched on load. Designed for **GitHub Pages**.
 
 ## How it works (the publishing model)
 
-This is **static hosting** — there is no server and nothing writes data at
-runtime. The flow is intentionally admin-driven:
+The published site is **static hosting** — there is no server and nothing
+writes data at runtime. The flow is intentionally admin-driven:
 
 1. Friends open the published site, fill out a bracket on their own device for
    fun, **screenshot it, and send the picture to the admin**.
-2. The **admin is the source of truth**. They re-enter each person's picks
-   locally on the Admin page, and enter match results as games finish.
-3. While the admin works, all edits are mirrored to the browser's
-   `localStorage`, so a refresh never loses progress.
-4. The admin clicks **Export** to download updated `brackets.json` and
-   `results.json`, drops them into `public/data/`, commits, and pushes.
-5. That push redeploys the site — **the commit is what publishes new data to
-   everyone.**
+2. The **admin is the source of truth**. They run the app **locally**
+   (`npm run dev`) and re-enter each person's picks, then enter match results as
+   games finish.
+3. On localhost, every edit **auto-saves straight to
+   `public/data/brackets.json` and `results.json`** (via a dev-only Vite
+   endpoint — see [`vite.config.ts`](vite.config.ts)). No export step.
+4. The admin just **commits and pushes** — that push redeploys the site and is
+   what publishes new data to everyone.
 
-> Editing the live site only ever changes *your own browser*. You cannot affect
-> what other people see; published standings update only when the admin commits
-> new JSON. The Admin "password" is a casual gate to prevent accidental edits —
-> **it is not security** (it ships in the static bundle).
+> The auto-save only exists under `npm run dev`; it is never in the production
+> build, so the published static site stays read-only. Editing the live site
+> only ever changes *your own browser* — and the Admin page still has manual
+> **Export / Import** as a fallback there. The Admin "password" is a casual gate
+> to prevent accidental edits — **it is not security** (it ships in the bundle).
 
 ---
 
@@ -101,28 +102,31 @@ R16 points — they correctly advanced Brazil; the wrong opponent is irrelevant.
 
 ## Admin guide (step by step)
 
-1. Go to **Admin** (`#/admin`) and unlock with the admin password (configured
-   as `ADMIN_PASSWORD` in [`src/pages/Admin.tsx`](src/pages/Admin.tsx)). This
-   gate only prevents accidental edits — it is **not security** (see below).
-2. **Resume previous work:** use *Import brackets.json* / *Import results.json*
-   to load the files currently committed in `public/data/`.
-3. **Enter each friend's picks:** from a screenshot, go to *Manage brackets →*
-   or **Create / Edit Bracket**, type their username, fill the bracket, Save.
-4. **Enter results** as matches finish. A match becomes enterable once both of
+Run the app locally so your edits save straight to the repo:
+
+1. `npm run dev` and open the local URL, then go to **Admin** (`#/admin`) and
+   unlock with the admin password (configured as `ADMIN_PASSWORD` in
+   [`src/pages/Admin.tsx`](src/pages/Admin.tsx)). The gate only prevents
+   accidental edits — it is **not security** (see below).
+2. **Enter each friend's picks:** from a screenshot, go to **Brackets → + New
+   bracket** (or *Edit* an existing one), type their username, fill the bracket,
+   Save.
+3. **Enter results** as matches finish. A match becomes enterable once both of
    its real participants are known (R32 always; later rounds derive from earlier
    winners). Changing an earlier result clears any now-impossible later results.
-5. **Export** `brackets.json` and `results.json`.
-6. Move both downloaded files into `public/data/`, then commit and push:
+4. Each edit **auto-writes** `public/data/brackets.json` and `results.json`.
+   Just commit and push:
    ```sh
-   mv ~/Downloads/brackets.json ~/Downloads/results.json public/data/
    git add public/data/brackets.json public/data/results.json
    git commit -m "Update picks and results"
    git push
    ```
-7. The deploy workflow rebuilds and the published site shows the new data.
+5. The deploy workflow rebuilds and the published site shows the new data.
 
-> "Reset to published" discards your local edits and reloads the committed JSON
-> — handy if your browser's working copy has drifted from the repo.
+> **Fallback (no local checkout):** the Admin page also has manual **Export /
+> Import** buttons. On the published site that's the only option, since it can't
+> write files. "Reset to published" discards local edits and reloads the
+> committed JSON — handy if your browser's working copy has drifted from the repo.
 
 ---
 
