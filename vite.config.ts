@@ -8,6 +8,8 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   base: '/fifa-world-cup-2026-sticker-tracker/',
   plugins: [react()],
+  server: { port: 3000 },
+  preview: { port: 3000 },
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],

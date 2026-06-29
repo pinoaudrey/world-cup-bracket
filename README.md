@@ -99,8 +99,9 @@ R16 points — they correctly advanced Brazil; the wrong opponent is irrelevant.
 
 ## Admin guide (step by step)
 
-1. Go to **Admin** (`#/admin`) and unlock (demo password: `goalpost` — change
-   `ADMIN_PASSWORD` in [`src/pages/Admin.tsx`](src/pages/Admin.tsx)).
+1. Go to **Admin** (`#/admin`) and unlock with the admin password (configured
+   as `ADMIN_PASSWORD` in [`src/pages/Admin.tsx`](src/pages/Admin.tsx)). This
+   gate only prevents accidental edits — it is **not security** (see below).
 2. **Resume previous work:** use *Import brackets.json* / *Import results.json*
    to load the files currently committed in `public/data/`.
 3. **Enter each friend's picks:** from a screenshot, go to *Manage brackets →*
@@ -127,7 +128,7 @@ R16 points — they correctly advanced Brazil; the wrong opponent is irrelevant.
 
 ```sh
 npm install
-npm run dev      # start the dev server (http://localhost:5173/<base>/)
+npm run dev      # start the dev server (http://localhost:3000/<base>/)
 npm test         # run the scoring/topology unit tests
 npm run build    # type-check + production build into dist/
 npm run preview  # serve the production build locally

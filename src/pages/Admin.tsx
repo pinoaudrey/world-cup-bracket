@@ -18,7 +18,7 @@ import type { Brackets, Match, Results } from '../types'
 // and anyone can bypass it. It doesn't matter: editing the live site only
 // changes the visitor's own localStorage. Published data only ever updates
 // when the admin exports JSON and commits it to the repo.
-const ADMIN_PASSWORD = 'goalpost'
+const ADMIN_PASSWORD = 'WC26'
 const UNLOCK_KEY = 'wc2026.admin.unlocked'
 
 export function Admin() {
@@ -67,7 +67,6 @@ function Gate({ onUnlock }: { onUnlock: () => void }) {
         </button>
         {bad && <span className="saved-msg error-text">Wrong password.</span>}
       </form>
-      <p className="muted small">Hint for this demo build: “{ADMIN_PASSWORD}”.</p>
     </div>
   )
 }

@@ -2,7 +2,6 @@ import { NavLink } from 'react-router-dom'
 
 const links = [
   { to: '/', label: 'Leaderboard', end: true },
-  { to: '/create', label: 'Create / Edit Bracket' },
   { to: '/brackets', label: 'Brackets' },
   { to: '/admin', label: 'Admin' },
 ]

@@ -1,9 +1,10 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { isComplete, pickCount } from '../bracket'
 import { useStore } from '../store'
 
 export function BracketsList() {
   const { tournament, brackets, deleteBracket } = useStore()
+  const navigate = useNavigate()
   const t = tournament!
 
   const sorted = [...brackets].sort((a, b) =>
@@ -12,12 +13,14 @@ export function BracketsList() {
 
   return (
     <div>
-      <div className="page-head">
-        <h1>Brackets</h1>
-        <p className="muted">
-          Everyone’s saved picks in this browser.{' '}
-          <Link to="/create">Create a new bracket →</Link>
-        </p>
+      <div className="page-head brackets-head">
+        <div>
+          <h1>Brackets</h1>
+          <p className="muted">Everyone’s saved picks in this browser.</p>
+        </div>
+        <button className="primary" onClick={() => navigate('/create')}>
+          + New bracket
+        </button>
       </div>
 
       {sorted.length === 0 ? (
