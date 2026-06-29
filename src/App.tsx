@@ -32,12 +32,6 @@ export default function App() {
           </Routes>
         )}
       </main>
-      <footer className="footer">
-        <span className="muted">
-          Static app · data published by committing JSON to the repo · editing
-          the live site only changes your own browser.
-        </span>
-      </footer>
     </div>
   )
 }

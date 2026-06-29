@@ -1,13 +1,14 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
+  bracketOrder,
   isComplete,
   isEnterable,
-  orderedMatches,
   participants,
   pickCount,
 } from '../bracket'
-import { TeamLabel } from '../components/TeamLabel'
+import { BracketBoard, shortTime } from '../components/BracketBoard'
+import { abbrFor, flagFor } from '../flags'
 import { useStore } from '../store'
 import { downloadJson, readJsonFile } from '../util/download'
 import type { Brackets, Match, Results } from '../types'
@@ -188,24 +189,31 @@ function AdminPanel() {
         </p>
       </section>
 
-      <section className="admin-section">
+      <section className="admin-results">
         <h2>Enter results</h2>
         <p className="muted small">
-          A match becomes enterable once both real participants are known
-          (derived from earlier winners). Changing an earlier result clears any
-          now-impossible later results.
+          Click the winner of each match. A match unlocks once both real
+          participants are known (derived from earlier winners). Changing an
+          earlier result clears any now-impossible later results.
         </p>
-        <div className="results-grid">
-          {orderedMatches(t).map((match) => (
-            <ResultRow
+        <BracketBoard
+          t={t}
+          byRound={bracketOrder(t)}
+          connectorState={(f) =>
+            results.winners[f] !== undefined ? 'correct' : 'neutral'
+          }
+          measureDeps={[results.winners]}
+          renderCard={(match, _round, cardRef) => (
+            <AdminResultCard
               key={match.id}
+              cardRef={cardRef}
               match={match}
               winners={results.winners}
               onSet={setWinner}
               onClear={clearWinner}
             />
-          ))}
-        </div>
+          )}
+        />
       </section>
 
       <section className="admin-section">
@@ -260,51 +268,102 @@ function AdminPanel() {
   )
 }
 
-function ResultRow({
+function AdminResultCard({
   match,
   winners,
   onSet,
   onClear,
+  cardRef,
 }: {
   match: Match
   winners: Record<number, string>
   onSet: (matchId: number, team: string) => void
   onClear: (matchId: number) => void
+  cardRef: (el: HTMLElement | null) => void
 }) {
   const [a, b] = participants(match, winners)
   const enterable = isEnterable(match, winners)
   const winner = winners[match.id]
+  const decided = winner !== undefined
+  const label = decided ? 'Final' : enterable ? 'Enter result' : 'Awaiting teams'
 
   return (
-    <div className={`result-row${winner ? ' decided' : ''}`}>
-      <div className="result-meta">
-        <span className="match-id">#{match.id}</span>
-        <span className="badge round">{match.round}</span>
-        <span className="match-time">{match.datetime}</span>
+    <div
+      className={`bcard admin ${decided ? 'is-correct' : 'is-locked'}`}
+      data-match={match.id}
+      ref={cardRef}
+    >
+      <div className="bcard-main">
+        <div className="bcard-label">{label}</div>
+        <AdminSlot
+          match={match}
+          team={a}
+          selected={winner === a}
+          enterable={enterable}
+          onSet={onSet}
+        />
+        <AdminSlot
+          match={match}
+          team={b}
+          selected={winner === b}
+          enterable={enterable}
+          onSet={onSet}
+        />
+        <div className="bcard-foot">
+          <span className="muted">{shortTime(match.datetime)}</span>
+        </div>
       </div>
-      {enterable ? (
-        <div className="result-choices">
-          {[a, b].map((team) => (
-            <button
-              key={team}
-              className={`slot${winner === team ? ' selected' : ''}`}
-              onClick={() => onSet(match.id, team!)}
-              aria-pressed={winner === team}
-            >
-              <TeamLabel team={team!} />
-            </button>
-          ))}
-          {winner && (
-            <button className="danger-link" onClick={() => onClear(match.id)}>
-              Clear
-            </button>
-          )}
+      <div className="bcard-pick">
+        <div className="pick-flag-wrap">
+          <span className="pick-flag-tile">
+            <span className="pick-flag">{winner ? flagFor(winner) : '—'}</span>
+          </span>
+          {decided && <span className="pick-badge is-correct">✓</span>}
+          {!decided && !enterable && <span className="pick-badge is-locked">🔒</span>}
         </div>
-      ) : (
-        <div className="muted">
-          Awaiting winners of #{match.feeders?.[0]} and #{match.feeders?.[1]}
-        </div>
-      )}
+        <div className="pick-my muted">{decided ? 'Winner' : 'Result'}</div>
+        <div className="pick-abbr">{winner ? abbrFor(winner) : '—'}</div>
+        {decided && (
+          <button className="danger-link admin-clear" onClick={() => onClear(match.id)}>
+            Clear
+          </button>
+        )}
+      </div>
     </div>
+  )
+}
+
+function AdminSlot({
+  match,
+  team,
+  selected,
+  enterable,
+  onSet,
+}: {
+  match: Match
+  team: string | null
+  selected: boolean
+  enterable: boolean
+  onSet: (matchId: number, team: string) => void
+}) {
+  if (!team) {
+    return (
+      <div className="team-slot placeholder">
+        <span className="slot-shield" />
+        <span className="slot-bar" />
+      </div>
+    )
+  }
+  return (
+    <button
+      className={`team-slot edit-slot${selected ? ' won' : ''}`}
+      disabled={!enterable}
+      onClick={() => onSet(match.id, team)}
+      aria-pressed={selected}
+    >
+      <span className="slot-flag">{flagFor(team)}</span>
+      <span className="slot-name">{team}</span>
+      {selected && <span className="slot-win">✓</span>}
+    </button>
   )
 }

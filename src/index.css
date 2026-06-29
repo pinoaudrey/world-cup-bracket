@@ -1,21 +1,26 @@
 :root {
-  --bg: #0f1216;
-  --surface: #171c22;
-  --surface-2: #1e252e;
-  --border: #2a323d;
-  --text: #e6eaf0;
-  --muted: #8b97a7;
+  --bg: #e9ecf0;
+  --surface: #ffffff;
+  --surface-2: #f3f5f8;
+  --border: #dfe3e8;
+  --text: #15181d;
+  --muted: #6b7480;
   --accent: #2f81f7;
   --accent-ink: #fff;
+  /* Maroon header bar, matching the bracket reference. */
+  --brand: #7a1626;
+  --brand-ink: #ffffff;
   --correct: #2ea043;
-  --correct-bg: #112b18;
+  --correct-bg: #e7f6ec;
+  --correct-ink: #1a7431;
   --wrong: #e5534b;
-  --wrong-bg: #2d1416;
-  --pending: #6b7685;
-  --ok: #2ea043;
-  --warn: #d29922;
+  --wrong-bg: #fdeceb;
+  --wrong-ink: #b42318;
+  --pending: #c4cad2;
+  --ok: #1a7431;
+  --warn: #9a6a00;
   --radius: 10px;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * {
@@ -86,8 +91,8 @@ code {
 
 /* ---------- Nav ---------- */
 .nav {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  background: var(--brand);
+  color: var(--brand-ink);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -103,6 +108,7 @@ code {
 }
 .brand {
   font-weight: 700;
+  color: var(--brand-ink);
 }
 .nav-links {
   display: flex;
@@ -110,20 +116,16 @@ code {
   flex-wrap: wrap;
 }
 .nav-links a {
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.78);
   padding: 0.2rem 0;
   border-bottom: 2px solid transparent;
 }
-.nav-links a.active {
-  color: var(--text);
-  border-bottom-color: var(--accent);
+.nav-links a:hover {
+  color: #fff;
 }
-
-.footer {
-  border-top: 1px solid var(--border);
-  padding: 0.75rem 1rem;
-  text-align: center;
-  font-size: 0.82rem;
+.nav-links a.active {
+  color: #fff;
+  border-bottom-color: #fff;
 }
 
 /* ---------- Buttons / inputs ---------- */
@@ -167,7 +169,7 @@ button.primary {
 input[type='text'],
 input[type='password'] {
   font: inherit;
-  background: var(--bg);
+  background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -210,6 +212,7 @@ input[type='password'] {
 .banner.error {
   background: var(--wrong-bg);
   border: 1px solid var(--wrong);
+  color: var(--wrong-ink);
 }
 
 .badge {
@@ -312,12 +315,12 @@ input[type='password'] {
 .view-slot.picked.correct {
   background: var(--correct-bg);
   border-color: var(--correct);
-  color: #7ee397;
+  color: var(--correct-ink);
 }
 .view-slot.picked.wrong {
   background: var(--wrong-bg);
   border-color: var(--wrong);
-  color: #f5a6a1;
+  color: var(--wrong-ink);
   text-decoration: line-through;
 }
 .view-slot.picked.pending {
@@ -342,12 +345,12 @@ input[type='password'] {
 .chip.correct {
   background: var(--correct-bg);
   border-color: var(--correct);
-  color: #7ee397;
+  color: var(--correct-ink);
 }
 .chip.wrong {
   background: var(--wrong-bg);
   border-color: var(--wrong);
-  color: #f5a6a1;
+  color: var(--wrong-ink);
 }
 .chip.pending {
   border-color: var(--pending);
@@ -933,4 +936,26 @@ th {
 }
 .bcard.edit.is-chosen {
   border-color: #b8c6e0;
+}
+
+/* ---- Admin: result entry on the bracket board ---- */
+.admin-results {
+  margin-bottom: 1.25rem;
+}
+.admin-results h2 {
+  margin-bottom: 0.2rem;
+}
+/* Selected actual winner: green, matching the decided-card border. */
+.team-slot.edit-slot.won {
+  font-weight: 800;
+  border-color: var(--correct);
+  background: var(--correct-bg);
+  color: var(--text);
+}
+.team-slot.won .slot-win {
+  color: var(--correct);
+}
+.admin-clear {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
 }
