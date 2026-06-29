@@ -1,24 +1,15 @@
 import {
   Anchor,
-  Badge,
   Button,
   Group,
-  Paper,
   PasswordInput,
   Stack,
-  Table,
   Text,
   Title,
 } from '@mantine/core'
 import { type FormEvent, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  bracketOrder,
-  isComplete,
-  isEnterable,
-  participants,
-  pickCount,
-} from '../bracket'
+import { bracketOrder, isEnterable, participants } from '../bracket'
 import {
   BracketBoard,
   ClickSlot,
@@ -91,23 +82,22 @@ function Gate({ onUnlock }: { onUnlock: () => void }) {
 }
 
 function AdminPanel() {
-  const { tournament, brackets, results, setWinner, clearWinner, deleteBracket } =
-    useStore()
+  const { tournament, results, setWinner, clearWinner } = useStore()
   const t = tournament!
-
-  const sortedBrackets = [...brackets].sort((a, b) =>
-    a.username.localeCompare(b.username),
-  )
 
   return (
     <Stack gap="lg">
       <div>
         <Title order={1}>Admin</Title>
         <Text c="dimmed" size="sm">
-          Enter results and manage brackets.{' '}
+          Enter match results below. Create, edit, and delete brackets on the{' '}
+          <Anchor component={Link} to="/brackets">
+            Brackets
+          </Anchor>{' '}
+          page.
           {import.meta.env.DEV
-            ? 'On localhost every change auto-saves to public/data/*.json — just commit and push.'
-            : 'Re-enter each person’s picks and the results as matches finish.'}
+            ? ' On localhost every change auto-saves to public/data/*.json — just commit and push.'
+            : ''}
         </Text>
       </div>
 
@@ -185,69 +175,6 @@ function AdminPanel() {
           }}
         />
       </div>
-
-      <Paper withBorder radius="md" p="md">
-        <Title order={3} mb="sm">
-          Manage brackets
-        </Title>
-        {sortedBrackets.length === 0 ? (
-          <Text c="dimmed">
-            No brackets yet.{' '}
-            <Anchor component={Link} to="/create">
-              Create one
-            </Anchor>
-            .
-          </Text>
-        ) : (
-          <Table highlightOnHover verticalSpacing="xs">
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Player</Table.Th>
-                <Table.Th>Picks</Table.Th>
-                <Table.Th>Actions</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {sortedBrackets.map((b) => (
-                <Table.Tr key={b.username}>
-                  <Table.Td>{b.username}</Table.Td>
-                  <Table.Td>
-                    <Group gap="xs">
-                      <span>
-                        {pickCount(b.picks, t)}/{t.matches.length}
-                      </span>
-                      <Badge color={isComplete(b.picks, t) ? 'green' : 'yellow'} variant="light">
-                        {isComplete(b.picks, t) ? 'complete' : 'partial'}
-                      </Badge>
-                    </Group>
-                  </Table.Td>
-                  <Table.Td>
-                    <Group gap="sm">
-                      <Anchor component={Link} to={`/view/${encodeURIComponent(b.username)}`}>
-                        View
-                      </Anchor>
-                      <Anchor component={Link} to={`/create/${encodeURIComponent(b.username)}`}>
-                        Edit
-                      </Anchor>
-                      <Anchor
-                        component="button"
-                        type="button"
-                        c="red"
-                        onClick={() => {
-                          if (confirm(`Delete ${b.username}'s bracket?`))
-                            deleteBracket(b.username)
-                        }}
-                      >
-                        Delete
-                      </Anchor>
-                    </Group>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        )}
-      </Paper>
     </Stack>
   )
 }
