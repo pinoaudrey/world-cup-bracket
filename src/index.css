@@ -874,3 +874,63 @@ th {
     width: 86vw;
   }
 }
+
+/* ---- Edit page: same board, interactive cards ---- */
+.edit-head .bv-summary-main {
+  width: 100%;
+}
+.edit-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #eceef1;
+}
+/* Light-theme form controls so they read on the light bracket board. */
+.bracket-page .field {
+  color: #6b7480;
+}
+.bracket-page input[type='text'] {
+  background: #fff;
+  color: #15181d;
+  border: 1px solid #ccd2da;
+}
+.bracket-page button {
+  background: #fff;
+  color: #15181d;
+  border: 1px solid #ccd2da;
+}
+.bracket-page button.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.bracket-page .badge.ok {
+  color: #1a7431;
+  border-color: #1a7431;
+}
+
+.team-slot.edit-slot {
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  color: #15181d;
+  cursor: pointer;
+}
+.team-slot.edit-slot:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: #f4f8ff;
+}
+.team-slot.chosen {
+  font-weight: 800;
+  border-color: var(--accent);
+  background: #eef5ff;
+}
+.team-slot.edit-slot .slot-win {
+  color: var(--accent);
+}
+.bcard.edit.is-chosen {
+  border-color: #b8c6e0;
+}

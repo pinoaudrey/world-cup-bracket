@@ -1,18 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
+  bracketOrder,
   isComplete,
-  matchesByRound,
   participants,
   pickCount,
   setPick,
 } from '../bracket'
-import { TeamLabel } from '../components/TeamLabel'
+import { BracketBoard, shortTime } from '../components/BracketBoard'
+import { abbrFor, flagFor } from '../flags'
 import { useStore } from '../store'
-import type { Match } from '../types'
+import type { Match, RoundInfo, Tournament } from '../types'
 
 export function EditBracket() {
-  const { tournament, getBracket, saveBracket, brackets } = useStore()
+  const { tournament, getBracket, saveBracket } = useStore()
   const navigate = useNavigate()
   const { username: usernameParam } = useParams()
 
@@ -30,12 +31,11 @@ export function EditBracket() {
       setPicks({})
     }
     setSaved(false)
-    // getBracket identity changes with brackets; we only want this on param change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usernameParam])
 
   const t = tournament!
-  const byRound = useMemo(() => matchesByRound(t), [t])
+  const byRound = useMemo(() => bracketOrder(t), [t])
   const total = t.matches.length
   const done = pickCount(picks, t)
   const complete = isComplete(picks, t)
@@ -65,120 +65,153 @@ export function EditBracket() {
   }
 
   return (
-    <div>
-      <div className="page-head">
-        <h1>{usernameParam ? `Edit bracket: ${usernameParam}` : 'Create bracket'}</h1>
-        <p className="muted">
-          Pick a winner for each match. Picking a team feeds it into the next
-          round; changing an earlier pick clears any later picks that depended on it.
-        </p>
-      </div>
-
-      <div className="toolbar">
-        <label className="field">
-          Username
-          <input
-            type="text"
-            value={username}
-            placeholder="e.g. alex"
-            onChange={(e) => {
-              setUsername(e.target.value)
-              setSaved(false)
-            }}
-            disabled={!!usernameParam}
-          />
-        </label>
-        <div className="progress">
-          <strong>{done}</strong> / {total} picks
-          {complete && <span className="badge ok"> complete</span>}
+    <div className="bracket-page">
+      <div className="bv-summary edit-head">
+        <div className="bv-summary-main">
+          <div className="bv-summary-title">
+            {usernameParam ? `Edit bracket: ${usernameParam}` : 'Create bracket'}
+          </div>
+          <div className="bv-summary-sub muted">
+            Pick a winner for each match. Picking a team feeds it into the next
+            round; changing an earlier pick clears later picks that depended on it.
+          </div>
+          <div className="edit-controls">
+            <label className="field">
+              Username
+              <input
+                type="text"
+                value={username}
+                placeholder="e.g. alex"
+                onChange={(e) => {
+                  setUsername(e.target.value)
+                  setSaved(false)
+                }}
+                disabled={!!usernameParam}
+              />
+            </label>
+            <div className="progress">
+              <strong>{done}</strong> / {total} picks
+              {complete && <span className="badge ok"> complete</span>}
+            </div>
+            <button className="primary" onClick={handleSave}>
+              Save bracket
+            </button>
+            {saved && (
+              <span className="saved-msg">
+                Saved.{' '}
+                <a onClick={() => navigate(`/view/${encodeURIComponent(username.trim())}`)}>
+                  View it →
+                </a>
+              </span>
+            )}
+          </div>
         </div>
-        <button className="primary" onClick={handleSave}>
-          Save bracket
-        </button>
-        {saved && (
-          <span className="saved-msg">
-            Saved.{' '}
-            <a onClick={() => navigate(`/view/${encodeURIComponent(username.trim())}`)}>
-              View it →
-            </a>
-          </span>
+      </div>
+
+      <BracketBoard
+        t={t}
+        byRound={byRound}
+        connectorState={() => 'neutral'}
+        measureDeps={[picks]}
+        renderCard={(match, round, cardRef) => (
+          <EditCard
+            key={match.id}
+            cardRef={cardRef}
+            match={match}
+            round={round}
+            picks={picks}
+            onChoose={choose}
+          />
         )}
-      </div>
-
-      <div className="rounds">
-        {t.rounds.map((round) => (
-          <section key={round.id} className="round-col">
-            <h2>
-              {round.name}{' '}
-              <span className="muted">({round.points} pt each)</span>
-            </h2>
-            {byRound[round.id].map((match) => {
-              const [a, b] = participants(match, picks)
-              const pick = picks[match.id]
-              return (
-                <div className="match-card" key={match.id}>
-                  <div className="match-meta">
-                    <span className="match-id">#{match.id}</span>
-                    <span className="match-time">{match.datetime}</span>
-                  </div>
-                  <Slot
-                    match={match}
-                    slot={0}
-                    team={a}
-                    selected={pick !== undefined && pick === a}
-                    onChoose={choose}
-                  />
-                  <Slot
-                    match={match}
-                    slot={1}
-                    team={b}
-                    selected={pick !== undefined && pick === b}
-                    onChoose={choose}
-                  />
-                </div>
-              )
-            })}
-          </section>
-        ))}
-      </div>
-
-      {brackets.length > 0 && (
-        <p className="muted small">
-          {brackets.length} bracket{brackets.length === 1 ? '' : 's'} saved in this browser.
-        </p>
-      )}
+        championCard={<EditChampion t={t} picks={picks} />}
+      />
     </div>
   )
 }
 
-function Slot({
+interface EditCardProps {
+  match: Match
+  round: RoundInfo
+  picks: Record<number, string>
+  onChoose: (m: Match, team: string) => void
+  cardRef: (el: HTMLElement | null) => void
+}
+
+function EditCard({ match, round, picks, onChoose, cardRef }: EditCardProps) {
+  // The two teams the player can advance from this match (their own topology).
+  const [a, b] = participants(match, picks)
+  const pick = picks[match.id]
+  const over =
+    pick && round.id !== 'R32' ? (a === pick ? b : a) : null
+
+  return (
+    <div
+      className={`bcard edit${pick ? ' is-chosen' : ''}`}
+      data-match={match.id}
+      ref={cardRef}
+    >
+      <div className="bcard-main">
+        <div className="bcard-label">{pick ? 'Your pick' : 'Pick a winner'}</div>
+        <EditSlot match={match} team={a} selected={pick === a} onChoose={onChoose} />
+        <EditSlot match={match} team={b} selected={pick === b} onChoose={onChoose} />
+        <div className="bcard-foot">
+          <span className="muted">{shortTime(match.datetime)}</span>
+        </div>
+      </div>
+      <div className="bcard-pick">
+        <div className="pick-flag-wrap">
+          <span className="pick-flag-tile">
+            <span className="pick-flag">{pick ? flagFor(pick) : '—'}</span>
+          </span>
+        </div>
+        <div className="pick-my muted">My Pick:</div>
+        <div className="pick-abbr">{pick ? abbrFor(pick) : '—'}</div>
+        {over && <div className="pick-over muted">(over {abbrFor(over)})</div>}
+      </div>
+    </div>
+  )
+}
+
+function EditSlot({
   match,
-  slot,
   team,
   selected,
   onChoose,
 }: {
   match: Match
-  slot: 0 | 1
   team: string | null
   selected: boolean
   onChoose: (m: Match, team: string) => void
 }) {
   if (!team) {
-    const feeder = match.feeders?.[slot]
     return (
-      <button className="slot disabled" disabled>
-        <span className="muted">Winner of #{feeder}</span>
-      </button>
+      <div className="team-slot placeholder">
+        <span className="slot-shield" />
+        <span className="slot-bar" />
+      </div>
     )
   }
   return (
     <button
-      className={`slot${selected ? ' selected' : ''}`}
+      className={`team-slot edit-slot${selected ? ' chosen' : ''}`}
       onClick={() => onChoose(match, team)}
       aria-pressed={selected}
     >
-      <TeamLabel team={team} />
+      <span className="slot-flag">{flagFor(team)}</span>
+      <span className="slot-name">{team}</span>
+      {selected && <span className="slot-win">✓</span>}
     </button>
+  )
+}
+
+function EditChampion({ t, picks }: { t: Tournament; picks: Record<number, string> }) {
+  const finalMatch = t.matches.find((m) => m.round === 'F')
+  const champ = finalMatch ? picks[finalMatch.id] : undefined
+  return (
+    <div className="champ-card is-locked">
+      <div className="champ-title">YOUR CHAMPIONSHIP PICK</div>
+      <div className="champ-name">{champ ?? 'No pick yet'}</div>
+      <div className="champ-flag">{champ ? flagFor(champ) : '🏆'}</div>
+    </div>
   )
 }

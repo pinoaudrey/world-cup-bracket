@@ -1,21 +1,17 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { bracketOrder, eliminatedTeams, participants } from '../bracket'
+import {
+  BracketBoard,
+  shortTime,
+  type ConnectorState,
+} from '../components/BracketBoard'
 import { abbrFor, flagFor } from '../flags'
 import { leaderboard, scoreBracket } from '../scoring'
 import { useStore } from '../store'
-import type { Match, Round, Tournament } from '../types'
+import type { Match } from '../types'
 
 type PickStatus = 'correct' | 'wrong' | 'pending' | 'none'
-
-// Display date ranges per round (the tournament file stores per-match times).
-const ROUND_DATES: Record<Round, string> = {
-  R32: 'June 28 – July 3',
-  R16: 'July 4 – 7',
-  QF: 'July 9 – 11',
-  SF: 'July 14 – 15',
-  F: 'July 19',
-}
 
 /**
  * Coloring rules:
@@ -39,11 +35,6 @@ function pickStatus(
 
 const statusClass = (s: PickStatus) =>
   s === 'correct' ? 'is-correct' : s === 'wrong' ? 'is-wrong' : 'is-locked'
-
-/** "Mon Jun 29, 1:30 PM PT" -> "Jun 29, 1:30 PM" */
-function shortTime(dt: string): string {
-  return dt.replace(/^[A-Za-z]{3}\s+/, '').replace(/\s*PT$/, '')
-}
 
 export function ViewBracket() {
   const { tournament, results, brackets, getBracket } = useStore()
@@ -94,8 +85,9 @@ export function ViewBracket() {
     )
   }
 
+  const picks = bracket.picks
   const finalMatch = t.matches.find((m) => m.round === 'F')
-  const champPick = finalMatch ? bracket.picks[finalMatch.id] : undefined
+  const champPick = finalMatch ? picks[finalMatch.id] : undefined
   const champStatus = finalMatch
     ? pickStatus(finalMatch.id, champPick, winners, eliminated)
     : 'none'
@@ -108,6 +100,13 @@ export function ViewBracket() {
       : tally.correct === tally.decided
         ? 'Your bracket is perfect so far'
         : `${tally.correct} of ${tally.decided} picks correct`
+
+  const connState = (f: number): ConnectorState => {
+    const fp = picks[f]
+    const fw = winners[f]
+    if (fw !== undefined && fp !== undefined) return fp === fw ? 'correct' : 'wrong'
+    return 'neutral'
+  }
 
   return (
     <div className="bracket-page">
@@ -164,173 +163,33 @@ export function ViewBracket() {
         <span className="chip pending">locked / pending</span>
       </div>
 
-      {/* ---------- The bracket itself ---------- */}
-      <BracketTree
+      {/* ---------- The bracket board ---------- */}
+      <BracketBoard
         t={t}
         byRound={byRound}
-        picks={bracket.picks}
-        winners={winners}
-        eliminated={eliminated}
-        champPick={champPick}
-        champStatus={champStatus}
+        connectorState={connState}
+        measureDeps={[picks, winners]}
+        renderCard={(match, round, cardRef) => (
+          <ViewCard
+            key={match.id}
+            cardRef={cardRef}
+            match={match}
+            roundPoints={round.points}
+            picks={picks}
+            winners={winners}
+            eliminated={eliminated}
+          />
+        )}
+        championCard={
+          <div className={`champ-card ${statusClass(champStatus)}`}>
+            <div className="champ-title">MY CHAMPIONSHIP PICK</div>
+            <div className="champ-name">{champPick ?? 'No pick yet'}</div>
+            <div className="champ-flag">{champPick ? flagFor(champPick) : '🏆'}</div>
+            {champStatus === 'correct' && <div className="champ-badge ok">✓ Champion</div>}
+            {champStatus === 'wrong' && <div className="champ-badge bad">Eliminated</div>}
+          </div>
+        }
       />
-    </div>
-  )
-}
-
-interface TreeProps {
-  t: Tournament
-  byRound: Record<Round, Match[]>
-  picks: Record<number, string>
-  winners: Record<number, string>
-  eliminated: Set<string>
-  champPick: string | undefined
-  champStatus: PickStatus
-}
-
-interface Segment {
-  key: string
-  d: string
-  state: 'correct' | 'wrong' | 'neutral'
-}
-
-function BracketTree({
-  t,
-  byRound,
-  picks,
-  winners,
-  eliminated,
-  champPick,
-  champStatus,
-}: TreeProps) {
-  const contentRef = useRef<HTMLDivElement>(null)
-  const cardRefs = useRef(new Map<number, HTMLElement>())
-  const [segments, setSegments] = useState<Segment[]>([])
-  const [size, setSize] = useState({ w: 0, h: 0 })
-
-  const setCardRef = useCallback(
-    (id: number) => (el: HTMLElement | null) => {
-      if (el) cardRefs.current.set(id, el)
-      else cardRefs.current.delete(id)
-    },
-    [],
-  )
-
-  // Draw connector lines from each match's two feeders into the match, measured
-  // from the laid-out DOM so they're exact at any width. Recomputed when the
-  // data changes or the container resizes.
-  const measure = useCallback(() => {
-    const content = contentRef.current
-    if (!content) return
-    const base = content.getBoundingClientRect()
-    const segs: Segment[] = []
-    for (const m of t.matches) {
-      if (!m.feeders) continue
-      const toEl = cardRefs.current.get(m.id)
-      if (!toEl) continue
-      const toR = toEl.getBoundingClientRect()
-      const toX = toR.left - base.left
-      const toY = toR.top - base.top + toR.height / 2
-      for (const f of m.feeders) {
-        const fromEl = cardRefs.current.get(f)
-        if (!fromEl) continue
-        const fr = fromEl.getBoundingClientRect()
-        const fromX = fr.right - base.left
-        const fromY = fr.top - base.top + fr.height / 2
-        const midX = fromX + Math.max(14, (toX - fromX) / 2)
-        const fp = picks[f]
-        const fw = winners[f]
-        const state =
-          fw !== undefined && fp !== undefined
-            ? fp === fw
-              ? 'correct'
-              : 'wrong'
-            : 'neutral'
-        segs.push({
-          key: `${f}-${m.id}`,
-          d: `M ${fromX} ${fromY} H ${midX} V ${toY} H ${toX}`,
-          state,
-        })
-      }
-    }
-    setSegments(segs)
-    setSize({ w: content.scrollWidth, h: content.scrollHeight })
-  }, [t, picks, winners])
-
-  useLayoutEffect(() => {
-    measure()
-    const raf = requestAnimationFrame(measure)
-    const ro = new ResizeObserver(measure)
-    if (contentRef.current) ro.observe(contentRef.current)
-    window.addEventListener('resize', measure)
-    return () => {
-      cancelAnimationFrame(raf)
-      ro.disconnect()
-      window.removeEventListener('resize', measure)
-    }
-  }, [measure])
-
-  return (
-    <div className="bracket-scroll">
-      <div className="bracket-grid" ref={contentRef}>
-        <svg
-          className="bracket-lines"
-          width={size.w || '100%'}
-          height={size.h || '100%'}
-          aria-hidden="true"
-        >
-          {segments.map((s) => (
-            <path key={s.key} d={s.d} className={`bline ${s.state}`} fill="none" />
-          ))}
-        </svg>
-
-        {t.rounds.map((round) => (
-          <div className="bracket-col" key={round.id}>
-            <div className="round-band">
-              <div className="round-band-name">{round.name}</div>
-              <div className="round-band-dates">{ROUND_DATES[round.id]}</div>
-              <div className="round-band-pts">
-                {round.points} pt{round.points > 1 ? 's' : ''} each
-              </div>
-            </div>
-            <div className="round-matches">
-              {byRound[round.id].map((match) => (
-                <BracketCard
-                  key={match.id}
-                  cardRef={setCardRef(match.id)}
-                  match={match}
-                  roundPoints={round.points}
-                  picks={picks}
-                  winners={winners}
-                  eliminated={eliminated}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-
-        {/* Championship showcase column */}
-        <div className="bracket-col champ-col">
-          <div className="round-band">
-            <div className="round-band-name">Champion</div>
-            <div className="round-band-dates">July 19</div>
-            <div className="round-band-pts">&nbsp;</div>
-          </div>
-          <div className="round-matches">
-            <div className={`champ-card ${statusClass(champStatus)}`}>
-              <div className="champ-title">MY CHAMPIONSHIP PICK</div>
-              <div className="champ-name">{champPick ?? 'No pick yet'}</div>
-              <div className="champ-flag">{champPick ? flagFor(champPick) : '🏆'}</div>
-              {champStatus === 'correct' && (
-                <div className="champ-badge ok">✓ Champion</div>
-              )}
-              {champStatus === 'wrong' && (
-                <div className="champ-badge bad">Eliminated</div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }
@@ -344,7 +203,7 @@ interface CardProps {
   cardRef: (el: HTMLElement | null) => void
 }
 
-function BracketCard({
+function ViewCard({
   match,
   roundPoints,
   picks,
@@ -360,20 +219,14 @@ function BracketCard({
 
   // The opponent the player predicted (their other participant in this slot).
   const [predA, predB] = participants(match, picks)
-  const over =
-    match.round !== 'R32'
-      ? predA === pick
-        ? predB
-        : predA
-      : null
+  const over = match.round !== 'R32' ? (predA === pick ? predB : predA) : null
 
   const label =
     status === 'correct' ? 'Correct' : status === 'wrong' ? 'Incorrect' : 'Locked'
-  const badge =
-    status === 'correct' ? '✓' : status === 'wrong' ? '✕' : '🔒'
+  const badge = status === 'correct' ? '✓' : status === 'wrong' ? '✕' : '🔒'
 
   return (
-    <div className={`bcard ${statusClass(status)}`} ref={cardRef}>
+    <div className={`bcard ${statusClass(status)}`} data-match={match.id} ref={cardRef}>
       <div className="bcard-main">
         <div className="bcard-label">{label}</div>
         <TeamSlot team={realA} isWinner={winner !== undefined && winner === realA} />
@@ -402,7 +255,6 @@ function BracketCard({
 
 function TeamSlot({ team, isWinner }: { team: string | null; isWinner: boolean }) {
   if (!team) {
-    // Unknown actual participant (this feeder hasn't been decided in reality).
     return (
       <div className="team-slot placeholder">
         <span className="slot-shield" />
