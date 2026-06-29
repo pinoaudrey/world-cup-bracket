@@ -54,7 +54,17 @@ export default function App() {
 
   return (
     <AppShell header={{ height: 56 }} padding="md">
-      <AppShell.Header bg="blue.7" withBorder={false}>
+      <AppShell.Header
+        withBorder={false}
+        style={{
+          // The World Cup "26" artwork as the header background, behind a dark
+          // scrim so the white title + nav links stay legible over the busy
+          // colors. BASE_URL keeps the path correct in dev and on GitHub Pages.
+          backgroundImage: `linear-gradient(rgba(10,16,40,0.55), rgba(10,16,40,0.55)), url(${import.meta.env.BASE_URL}wc26.jpg)`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
         <Container size="lg" h="100%">
           <Group h="100%" justify="space-between" wrap="nowrap">
             <Text fw={700} c="white" style={{ whiteSpace: 'nowrap' }}>
