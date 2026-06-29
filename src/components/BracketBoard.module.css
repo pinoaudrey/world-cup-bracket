@@ -1,0 +1,181 @@
+/* Structural layout for the bracket board — the part no component library
+   provides (round columns, space-around tree spacing, SVG connector overlay,
+   flag tiles, placeholder slots). Colors reference Mantine CSS variables so
+   everything stays in sync with the theme. */
+
+.scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+  scroll-snap-type: x proximity;
+}
+.grid {
+  position: relative;
+  display: flex;
+  gap: 44px;
+  align-items: stretch;
+  width: fit-content;
+  min-height: 1400px;
+}
+.lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.line {
+  stroke: var(--mantine-color-gray-4);
+  stroke-width: 2;
+  stroke-dasharray: 5 5;
+}
+.lineCorrect {
+  stroke: var(--mantine-color-green-6);
+  stroke-dasharray: none;
+  stroke-width: 2.5;
+}
+.lineWrong {
+  stroke: var(--mantine-color-red-6);
+}
+
+.col {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 248px;
+  width: 248px;
+  scroll-snap-align: start;
+}
+.matches {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 10px;
+}
+
+/* Team slots */
+.slot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 7px;
+  border: 1px solid var(--mantine-color-gray-3);
+  border-radius: 7px;
+  min-height: 32px;
+  font-size: 14px;
+  background: #fff;
+  color: var(--mantine-color-text);
+}
+.slotName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.slotWin {
+  margin-left: auto;
+  font-size: 11px;
+}
+.slotWinner {
+  font-weight: 800;
+  border-color: var(--mantine-color-blue-5);
+  background: var(--mantine-color-blue-0);
+}
+.slotPlaceholder {
+  background: var(--mantine-color-gray-1);
+  border-color: var(--mantine-color-gray-2);
+}
+.shield {
+  width: 16px;
+  height: 18px;
+  background: var(--mantine-color-gray-4);
+  border-radius: 3px 3px 6px 6px;
+  flex: none;
+}
+.bar {
+  height: 9px;
+  flex: 1;
+  background: var(--mantine-color-gray-3);
+  border-radius: 5px;
+}
+
+/* Clickable slots (edit / admin) */
+.clickSlot {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.clickSlot:hover:not(:disabled) {
+  border-color: var(--mantine-color-blue-5);
+  background: var(--mantine-color-blue-0);
+}
+.clickSlot:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.chosen {
+  font-weight: 800;
+  border-color: var(--mantine-color-blue-5);
+  background: var(--mantine-color-blue-0);
+}
+.won {
+  font-weight: 800;
+  border-color: var(--mantine-color-green-6);
+  background: var(--mantine-color-green-0);
+}
+
+/* Flag tile + status badge */
+.flagTile {
+  position: relative;
+  width: 50px;
+  height: 34px;
+}
+.flagTileInner {
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--mantine-color-gray-4);
+  border-radius: 4px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.flag {
+  font-size: 26px;
+  line-height: 1;
+}
+.badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  z-index: 2;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+/* Champion showcase */
+.flagBig {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 110px;
+  height: 76px;
+  font-size: 54px;
+  line-height: 1;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}

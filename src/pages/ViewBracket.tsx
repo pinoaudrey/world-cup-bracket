@@ -1,24 +1,27 @@
+import { Anchor, Badge, Group, Paper, Stack, Text, Title } from '@mantine/core'
 import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { bracketOrder, eliminatedTeams, participants } from '../bracket'
 import {
   BracketBoard,
-  shortTime,
+  ChampionCard,
   type ConnectorState,
+  DisplaySlot,
+  FlagTile,
+  MatchCardShell,
+  PickBadge,
+  shortTime,
 } from '../components/BracketBoard'
-import { abbrFor, flagFor } from '../flags'
+import { abbrFor } from '../flags'
 import { leaderboard, scoreBracket } from '../scoring'
 import { useStore } from '../store'
-import type { Match } from '../types'
 
 type PickStatus = 'correct' | 'wrong' | 'pending' | 'none'
 
 /**
- * Coloring rules:
- *  - correct (green): the match has a result and the pick matches it.
- *  - wrong (red): the match has a result the pick missed, OR the picked team
- *    has already been eliminated in reality, even if this slot is unplayed.
- *  - pending (gray): no result yet and the picked team is still alive.
+ * Coloring rules: correct (green) = result matches the pick; wrong (red) =
+ * result missed OR the picked team is already eliminated in reality even if
+ * unplayed; pending (gray) = no result and the picked team is still alive.
  */
 function pickStatus(
   matchId: number,
@@ -33,8 +36,21 @@ function pickStatus(
   return 'pending'
 }
 
-const statusClass = (s: PickStatus) =>
-  s === 'correct' ? 'is-correct' : s === 'wrong' ? 'is-wrong' : 'is-locked'
+const toConnector = (s: PickStatus): ConnectorState =>
+  s === 'correct' ? 'correct' : s === 'wrong' ? 'wrong' : 'neutral'
+
+function Stat({ num, label }: { num: string | number; label: string }) {
+  return (
+    <div>
+      <Text fz={28} fw={800} lh={1.1}>
+        {num}
+      </Text>
+      <Text fz={10} fw={700} c="dimmed" style={{ letterSpacing: '0.06em' }}>
+        {label}
+      </Text>
+    </div>
+  )
+}
 
 export function ViewBracket() {
   const { tournament, results, brackets, getBracket } = useStore()
@@ -56,7 +72,6 @@ export function ViewBracket() {
     )?.rank
   }, [bracket, brackets, t, results])
 
-  // Correct/decided tally for the "PCT" stat and the subtitle.
   const tally = useMemo(() => {
     if (!bracket) return { decided: 0, correct: 0 }
     let decided = 0
@@ -74,14 +89,20 @@ export function ViewBracket() {
 
   if (!bracket || !score) {
     return (
-      <div>
-        <h1>Bracket not found</h1>
-        <p className="muted">
+      <Stack gap="xs">
+        <Title order={1}>Bracket not found</Title>
+        <Text c="dimmed">
           No saved bracket for “{username}”.{' '}
-          <Link to="/brackets">See all brackets</Link> or{' '}
-          <Link to="/create">create one</Link>.
-        </p>
-      </div>
+          <Anchor component={Link} to="/brackets">
+            See all brackets
+          </Anchor>{' '}
+          or{' '}
+          <Anchor component={Link} to="/create">
+            create one
+          </Anchor>
+          .
+        </Text>
+      </Stack>
     )
   }
 
@@ -109,164 +130,118 @@ export function ViewBracket() {
   }
 
   return (
-    <div className="bracket-page">
-      {/* ---------- Summary header ---------- */}
-      <div className="bv-summary">
-        <div className="bv-summary-flag">{champPick ? flagFor(champPick) : '🏆'}</div>
-        <div className="bv-summary-main">
-          <div className="bv-summary-title">
-            {bracket.username}’s bracket <span className="medal">🏅</span>
-            <Link
-              className="bv-edit-gear"
-              to={`/create/${encodeURIComponent(bracket.username)}`}
-              title="Edit bracket"
-            >
-              ⚙
-            </Link>
+    <Stack gap="md">
+      {/* Summary header */}
+      <Paper withBorder radius="md" p="md">
+        <Group wrap="nowrap" align="flex-start" gap="md">
+          <FlagTile team={champPick} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Group gap="xs" wrap="nowrap">
+              <Title order={2}>{bracket.username}’s bracket</Title>
+              <Text>🏅</Text>
+              <Anchor component={Link} to={`/create/${encodeURIComponent(bracket.username)}`} ml="auto">
+                ⚙ Edit
+              </Anchor>
+            </Group>
+            <Text c="dimmed" size="sm" mb="xs">
+              {subtitle}
+            </Text>
+            <Group gap="xl">
+              <Stat num={rank ?? '—'} label="RANK" />
+              <Stat num={pct === null ? '—' : `${pct}%`} label="PCT" />
+              <Stat num={score.total} label="PTS" />
+            </Group>
           </div>
-          <div className="bv-summary-sub muted">{subtitle}</div>
-          <div className="bv-stats">
-            <div className="bv-stat">
-              <div className="bv-stat-num">{rank ?? '—'}</div>
-              <div className="bv-stat-label">RANK</div>
-            </div>
-            <div className="bv-stat">
-              <div className="bv-stat-num">{pct === null ? '—' : `${pct}%`}</div>
-              <div className="bv-stat-label">PCT</div>
-            </div>
-            <div className="bv-stat">
-              <div className="bv-stat-num">{score.total}</div>
-              <div className="bv-stat-label">PTS</div>
-            </div>
-          </div>
-        </div>
-      </div>
+        </Group>
+      </Paper>
 
-      {/* Per-round breakdown (spec: running total + per-round breakdown). */}
-      <div className="bv-breakdown">
+      {/* Per-round breakdown */}
+      <Group gap="xs">
         {score.byRound.map((r) => (
-          <span key={r.round} className="bv-bd-chip">
-            <b>{r.round}</b> {r.earned}
-            <span className="muted">/{r.maxRound}</span>
-          </span>
+          <Badge key={r.round} variant="default" size="lg" tt="none">
+            {r.round} {r.earned}/{r.maxRound}
+          </Badge>
         ))}
-        <span className="bv-bd-chip total">
-          <b>Total</b> {score.total}
-          <span className="muted">/80</span>
-        </span>
-        <span className="muted small">· max possible {score.maxPossible}</span>
-      </div>
+        <Badge color="dark" variant="filled" size="lg" tt="none">
+          Total {score.total}/80
+        </Badge>
+        <Text size="sm" c="dimmed">
+          · max possible {score.maxPossible}
+        </Text>
+      </Group>
 
-      <div className="legend">
-        <span className="chip correct">correct</span>
-        <span className="chip wrong">wrong / eliminated</span>
-        <span className="chip pending">locked / pending</span>
-      </div>
+      {/* Legend */}
+      <Group gap="xs">
+        <Badge color="green" variant="light" tt="none">
+          correct
+        </Badge>
+        <Badge color="red" variant="light" tt="none">
+          wrong / eliminated
+        </Badge>
+        <Badge color="gray" variant="light" tt="none">
+          locked / pending
+        </Badge>
+      </Group>
 
-      {/* ---------- The bracket board ---------- */}
       <BracketBoard
         t={t}
         byRound={byRound}
         connectorState={connState}
         measureDeps={[picks, winners]}
-        renderCard={(match, round, cardRef) => (
-          <ViewCard
-            key={match.id}
-            cardRef={cardRef}
-            match={match}
-            roundPoints={round.points}
-            picks={picks}
-            winners={winners}
-            eliminated={eliminated}
-          />
-        )}
+        renderCard={(match, round, cardRef) => {
+          const [realA, realB] = participants(match, winners)
+          const winner = winners[match.id]
+          const pick = picks[match.id]
+          const status = pickStatus(match.id, pick, winners, eliminated)
+          const [predA, predB] = participants(match, picks)
+          const over = match.round !== 'R32' ? (predA === pick ? predB : predA) : null
+          const label =
+            status === 'correct' ? 'Correct' : status === 'wrong' ? 'Incorrect' : 'Locked'
+          const labelColor =
+            status === 'correct' ? 'green.7' : status === 'wrong' ? 'red.7' : 'dimmed'
+          const badgeKind = status === 'correct' ? 'correct' : status === 'wrong' ? 'wrong' : 'locked'
+          return (
+            <MatchCardShell
+              key={match.id}
+              matchId={match.id}
+              cardRef={cardRef}
+              status={toConnector(status)}
+              label={label}
+              labelColor={labelColor}
+              time={shortTime(match.datetime)}
+              pickPanel={
+                <>
+                  <FlagTile team={pick} badge={pick ? <PickBadge kind={badgeKind} /> : undefined} />
+                  <Text size="xs" c="dimmed">
+                    My Pick:
+                  </Text>
+                  <Text fw={800}>{pick ? abbrFor(pick) : '—'}</Text>
+                  {over && (
+                    <Text size="xs" c="dimmed">
+                      (over {abbrFor(over)})
+                    </Text>
+                  )}
+                  {status === 'correct' && (
+                    <Text size="xs" fw={800} c="green.7">
+                      +{round.points} PT{round.points > 1 ? 'S' : ''}
+                    </Text>
+                  )}
+                </>
+              }
+            >
+              <DisplaySlot team={realA} winner={winner !== undefined && winner === realA} />
+              <DisplaySlot team={realB} winner={winner !== undefined && winner === realB} />
+            </MatchCardShell>
+          )
+        }}
         championCard={
-          <div className={`champ-card ${statusClass(champStatus)}`}>
-            <div className="champ-title">MY CHAMPIONSHIP PICK</div>
-            <div className="champ-name">{champPick ?? 'No pick yet'}</div>
-            <div className="champ-flag">{champPick ? flagFor(champPick) : '🏆'}</div>
-            {champStatus === 'correct' && <div className="champ-badge ok">✓ Champion</div>}
-            {champStatus === 'wrong' && <div className="champ-badge bad">Eliminated</div>}
-          </div>
+          <ChampionCard
+            title="MY CHAMPIONSHIP PICK"
+            team={champPick}
+            status={toConnector(champStatus)}
+          />
         }
       />
-    </div>
-  )
-}
-
-interface CardProps {
-  match: Match
-  roundPoints: number
-  picks: Record<number, string>
-  winners: Record<number, string>
-  eliminated: Set<string>
-  cardRef: (el: HTMLElement | null) => void
-}
-
-function ViewCard({
-  match,
-  roundPoints,
-  picks,
-  winners,
-  eliminated,
-  cardRef,
-}: CardProps) {
-  // Actual matchup slots: present once that feeder is decided in reality.
-  const [realA, realB] = participants(match, winners)
-  const winner = winners[match.id]
-  const pick = picks[match.id]
-  const status = pickStatus(match.id, pick, winners, eliminated)
-
-  // The opponent the player predicted (their other participant in this slot).
-  const [predA, predB] = participants(match, picks)
-  const over = match.round !== 'R32' ? (predA === pick ? predB : predA) : null
-
-  const label =
-    status === 'correct' ? 'Correct' : status === 'wrong' ? 'Incorrect' : 'Locked'
-  const badge = status === 'correct' ? '✓' : status === 'wrong' ? '✕' : '🔒'
-
-  return (
-    <div className={`bcard ${statusClass(status)}`} data-match={match.id} ref={cardRef}>
-      <div className="bcard-main">
-        <div className="bcard-label">{label}</div>
-        <TeamSlot team={realA} isWinner={winner !== undefined && winner === realA} />
-        <TeamSlot team={realB} isWinner={winner !== undefined && winner === realB} />
-        <div className="bcard-foot">
-          <span className="muted">{shortTime(match.datetime)}</span>
-        </div>
-      </div>
-      <div className="bcard-pick">
-        <div className="pick-flag-wrap">
-          <span className="pick-flag-tile">
-            <span className="pick-flag">{pick ? flagFor(pick) : '—'}</span>
-          </span>
-          <span className={`pick-badge ${statusClass(status)}`}>{badge}</span>
-        </div>
-        <div className="pick-my muted">My Pick:</div>
-        <div className="pick-abbr">{pick ? abbrFor(pick) : '—'}</div>
-        {over && <div className="pick-over muted">(over {abbrFor(over)})</div>}
-        {status === 'correct' && (
-          <div className="pick-pts">+{roundPoints} PT{roundPoints > 1 ? 'S' : ''}</div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function TeamSlot({ team, isWinner }: { team: string | null; isWinner: boolean }) {
-  if (!team) {
-    return (
-      <div className="team-slot placeholder">
-        <span className="slot-shield" />
-        <span className="slot-bar" />
-      </div>
-    )
-  }
-  return (
-    <div className={`team-slot${isWinner ? ' winner' : ''}`}>
-      <span className="slot-flag">{flagFor(team)}</span>
-      <span className="slot-name">{team}</span>
-      {isWinner && <span className="slot-win">◄</span>}
-    </div>
+    </Stack>
   )
 }

@@ -1,3 +1,14 @@
+import {
+  Anchor,
+  Badge,
+  Button,
+  Group,
+  Paper,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+} from '@mantine/core'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
@@ -7,10 +18,17 @@ import {
   pickCount,
   setPick,
 } from '../bracket'
-import { BracketBoard, shortTime } from '../components/BracketBoard'
-import { abbrFor, flagFor } from '../flags'
+import {
+  BracketBoard,
+  ChampionCard,
+  ClickSlot,
+  FlagTile,
+  MatchCardShell,
+  shortTime,
+} from '../components/BracketBoard'
+import { abbrFor } from '../flags'
 import { useStore } from '../store'
-import type { Match, RoundInfo, Tournament } from '../types'
+import type { Match } from '../types'
 
 export function EditBracket() {
   const { tournament, getBracket, saveBracket } = useStore()
@@ -21,7 +39,6 @@ export function EditBracket() {
   const [picks, setPicks] = useState<Record<number, string>>({})
   const [saved, setSaved] = useState(false)
 
-  // Load an existing bracket when arriving at /create/:username.
   useEffect(() => {
     if (usernameParam) {
       setUsername(usernameParam)
@@ -39,6 +56,8 @@ export function EditBracket() {
   const total = t.matches.length
   const done = pickCount(picks, t)
   const complete = isComplete(picks, t)
+  const finalMatch = t.matches.find((m) => m.round === 'F')
+  const champPick = finalMatch ? picks[finalMatch.id] : undefined
 
   function choose(match: Match, team: string) {
     setSaved(false)
@@ -55,163 +74,112 @@ export function EditBracket() {
     const editingSamePerson =
       usernameParam && usernameParam.toLowerCase() === name.toLowerCase()
     if (existing && !editingSamePerson) {
-      const ok = confirm(
-        `A bracket for "${existing.username}" already exists. Overwrite it?`,
-      )
-      if (!ok) return
+      if (!confirm(`A bracket for "${existing.username}" already exists. Overwrite it?`))
+        return
     }
     saveBracket({ username: name, picks })
     setSaved(true)
   }
 
   return (
-    <div className="bracket-page">
-      <div className="bv-summary edit-head">
-        <div className="bv-summary-main">
-          <div className="bv-summary-title">
-            {usernameParam ? `Edit bracket: ${usernameParam}` : 'Create bracket'}
-          </div>
-          <div className="bv-summary-sub muted">
-            Pick a winner for each match. Picking a team feeds it into the next
-            round; changing an earlier pick clears later picks that depended on it.
-          </div>
-          <div className="edit-controls">
-            <label className="field">
-              Username
-              <input
-                type="text"
-                value={username}
-                placeholder="e.g. alex"
-                onChange={(e) => {
-                  setUsername(e.target.value)
-                  setSaved(false)
-                }}
-                disabled={!!usernameParam}
-              />
-            </label>
-            <div className="progress">
-              <strong>{done}</strong> / {total} picks
-              {complete && <span className="badge ok"> complete</span>}
-            </div>
-            <button className="primary" onClick={handleSave}>
-              Save bracket
-            </button>
-            {saved && (
-              <span className="saved-msg">
-                Saved.{' '}
-                <a onClick={() => navigate(`/view/${encodeURIComponent(username.trim())}`)}>
-                  View it →
-                </a>
-              </span>
+    <Stack gap="md">
+      <Paper withBorder radius="md" p="md">
+        <Title order={2}>
+          {usernameParam ? `Edit bracket: ${usernameParam}` : 'Create bracket'}
+        </Title>
+        <Text c="dimmed" size="sm" mb="sm">
+          Pick a winner for each match. Picking a team feeds it into the next round;
+          changing an earlier pick clears later picks that depended on it.
+        </Text>
+        <Group align="flex-end" gap="md">
+          <TextInput
+            label="Username"
+            placeholder="e.g. alex"
+            value={username}
+            onChange={(e) => {
+              setUsername(e.currentTarget.value)
+              setSaved(false)
+            }}
+            disabled={!!usernameParam}
+            w={220}
+          />
+          <Group gap={6}>
+            <Text>
+              <b>{done}</b> / {total} picks
+            </Text>
+            {complete && (
+              <Badge color="green" variant="light">
+                complete
+              </Badge>
             )}
-          </div>
-        </div>
-      </div>
+          </Group>
+          <Button onClick={handleSave}>Save bracket</Button>
+          {saved && (
+            <Text c="green" size="sm">
+              Saved.{' '}
+              <Anchor
+                component="button"
+                type="button"
+                onClick={() => navigate(`/view/${encodeURIComponent(username.trim())}`)}
+              >
+                View it →
+              </Anchor>
+            </Text>
+          )}
+        </Group>
+      </Paper>
 
       <BracketBoard
         t={t}
         byRound={byRound}
         connectorState={() => 'neutral'}
         measureDeps={[picks]}
-        renderCard={(match, round, cardRef) => (
-          <EditCard
-            key={match.id}
-            cardRef={cardRef}
-            match={match}
-            round={round}
-            picks={picks}
-            onChoose={choose}
-          />
-        )}
-        championCard={<EditChampion t={t} picks={picks} />}
+        renderCard={(match, round, cardRef) => {
+          const [a, b] = participants(match, picks)
+          const pick = picks[match.id]
+          const over = pick && round.id !== 'R32' ? (a === pick ? b : a) : null
+          return (
+            <MatchCardShell
+              key={match.id}
+              matchId={match.id}
+              cardRef={cardRef}
+              status="neutral"
+              label={pick ? 'Your pick' : 'Pick a winner'}
+              time={shortTime(match.datetime)}
+              pickPanel={
+                <>
+                  <FlagTile team={pick} />
+                  <Text size="xs" c="dimmed">
+                    My Pick:
+                  </Text>
+                  <Text fw={800}>{pick ? abbrFor(pick) : '—'}</Text>
+                  {over && (
+                    <Text size="xs" c="dimmed">
+                      (over {abbrFor(over)})
+                    </Text>
+                  )}
+                </>
+              }
+            >
+              <ClickSlot
+                team={a}
+                selected={pick === a}
+                onSelect={() => {
+                  if (a) choose(match, a)
+                }}
+              />
+              <ClickSlot
+                team={b}
+                selected={pick === b}
+                onSelect={() => {
+                  if (b) choose(match, b)
+                }}
+              />
+            </MatchCardShell>
+          )
+        }}
+        championCard={<ChampionCard title="YOUR CHAMPIONSHIP PICK" team={champPick} status="neutral" />}
       />
-    </div>
-  )
-}
-
-interface EditCardProps {
-  match: Match
-  round: RoundInfo
-  picks: Record<number, string>
-  onChoose: (m: Match, team: string) => void
-  cardRef: (el: HTMLElement | null) => void
-}
-
-function EditCard({ match, round, picks, onChoose, cardRef }: EditCardProps) {
-  // The two teams the player can advance from this match (their own topology).
-  const [a, b] = participants(match, picks)
-  const pick = picks[match.id]
-  const over =
-    pick && round.id !== 'R32' ? (a === pick ? b : a) : null
-
-  return (
-    <div
-      className={`bcard edit${pick ? ' is-chosen' : ''}`}
-      data-match={match.id}
-      ref={cardRef}
-    >
-      <div className="bcard-main">
-        <div className="bcard-label">{pick ? 'Your pick' : 'Pick a winner'}</div>
-        <EditSlot match={match} team={a} selected={pick === a} onChoose={onChoose} />
-        <EditSlot match={match} team={b} selected={pick === b} onChoose={onChoose} />
-        <div className="bcard-foot">
-          <span className="muted">{shortTime(match.datetime)}</span>
-        </div>
-      </div>
-      <div className="bcard-pick">
-        <div className="pick-flag-wrap">
-          <span className="pick-flag-tile">
-            <span className="pick-flag">{pick ? flagFor(pick) : '—'}</span>
-          </span>
-        </div>
-        <div className="pick-my muted">My Pick:</div>
-        <div className="pick-abbr">{pick ? abbrFor(pick) : '—'}</div>
-        {over && <div className="pick-over muted">(over {abbrFor(over)})</div>}
-      </div>
-    </div>
-  )
-}
-
-function EditSlot({
-  match,
-  team,
-  selected,
-  onChoose,
-}: {
-  match: Match
-  team: string | null
-  selected: boolean
-  onChoose: (m: Match, team: string) => void
-}) {
-  if (!team) {
-    return (
-      <div className="team-slot placeholder">
-        <span className="slot-shield" />
-        <span className="slot-bar" />
-      </div>
-    )
-  }
-  return (
-    <button
-      className={`team-slot edit-slot${selected ? ' chosen' : ''}`}
-      onClick={() => onChoose(match, team)}
-      aria-pressed={selected}
-    >
-      <span className="slot-flag">{flagFor(team)}</span>
-      <span className="slot-name">{team}</span>
-      {selected && <span className="slot-win">✓</span>}
-    </button>
-  )
-}
-
-function EditChampion({ t, picks }: { t: Tournament; picks: Record<number, string> }) {
-  const finalMatch = t.matches.find((m) => m.round === 'F')
-  const champ = finalMatch ? picks[finalMatch.id] : undefined
-  return (
-    <div className="champ-card is-locked">
-      <div className="champ-title">YOUR CHAMPIONSHIP PICK</div>
-      <div className="champ-name">{champ ?? 'No pick yet'}</div>
-      <div className="champ-flag">{champ ? flagFor(champ) : '🏆'}</div>
-    </div>
+    </Stack>
   )
 }

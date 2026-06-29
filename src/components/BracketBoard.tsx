@@ -1,3 +1,4 @@
+import { Badge, Box, Group, Paper, Stack, Text } from '@mantine/core'
 import {
   useCallback,
   useLayoutEffect,
@@ -5,7 +6,9 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { flagFor } from '../flags'
 import type { Match, Round, RoundInfo, Tournament } from '../types'
+import cls from './BracketBoard.module.css'
 
 // Display date ranges per round (the tournament file stores per-match times).
 export const ROUND_DATES: Record<Round, string> = {
@@ -23,6 +26,216 @@ export function shortTime(dt: string): string {
 
 export type ConnectorState = 'correct' | 'wrong' | 'neutral'
 
+const borderColor = (s: ConnectorState) =>
+  s === 'correct'
+    ? 'var(--mantine-color-green-6)'
+    : s === 'wrong'
+      ? 'var(--mantine-color-red-6)'
+      : 'var(--mantine-color-gray-3)'
+
+// ---------------------------------------------------------------------------
+// Shared card pieces (used by View / Edit / Admin)
+// ---------------------------------------------------------------------------
+
+export function PickBadge({ kind }: { kind: 'correct' | 'wrong' | 'locked' }) {
+  const bg =
+    kind === 'correct'
+      ? 'var(--mantine-color-green-6)'
+      : kind === 'wrong'
+        ? 'var(--mantine-color-red-6)'
+        : 'var(--mantine-color-blue-6)'
+  const sym = kind === 'correct' ? '✓' : kind === 'wrong' ? '✕' : '🔒'
+  return (
+    <span className={cls.badge} style={{ background: bg, fontSize: kind === 'locked' ? 9 : 11 }}>
+      {sym}
+    </span>
+  )
+}
+
+export function FlagTile({ team, badge }: { team?: string; badge?: ReactNode }) {
+  return (
+    <div className={cls.flagTile}>
+      <span className={cls.flagTileInner}>
+        <span className={cls.flag}>{team ? flagFor(team) : '—'}</span>
+      </span>
+      {badge}
+    </div>
+  )
+}
+
+export function PlaceholderSlot() {
+  return (
+    <div className={`${cls.slot} ${cls.slotPlaceholder}`}>
+      <span className={cls.shield} />
+      <span className={cls.bar} />
+    </div>
+  )
+}
+
+/** Read-only team slot (View). */
+export function DisplaySlot({ team, winner }: { team: string | null; winner?: boolean }) {
+  if (!team) return <PlaceholderSlot />
+  return (
+    <div className={winner ? `${cls.slot} ${cls.slotWinner}` : cls.slot}>
+      <span style={{ fontSize: 17 }}>{flagFor(team)}</span>
+      <span className={cls.slotName}>{team}</span>
+      {winner && (
+        <span className={cls.slotWin} style={{ color: 'var(--mantine-color-blue-6)' }}>
+          ◄
+        </span>
+      )}
+    </div>
+  )
+}
+
+/** Clickable team slot (Edit / Admin). */
+export function ClickSlot({
+  team,
+  selected,
+  variant = 'chosen',
+  disabled,
+  mark = '✓',
+  onSelect,
+}: {
+  team: string | null
+  selected: boolean
+  variant?: 'chosen' | 'won'
+  disabled?: boolean
+  mark?: string
+  onSelect: () => void
+}) {
+  if (!team) return <PlaceholderSlot />
+  const sel = selected ? (variant === 'won' ? cls.won : cls.chosen) : ''
+  const markColor =
+    variant === 'won' ? 'var(--mantine-color-green-7)' : 'var(--mantine-color-blue-6)'
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={`${cls.slot} ${cls.clickSlot} ${sel}`}
+    >
+      <span style={{ fontSize: 17 }}>{flagFor(team)}</span>
+      <span className={cls.slotName}>{team}</span>
+      {selected && (
+        <span className={cls.slotWin} style={{ color: markColor }}>
+          {mark}
+        </span>
+      )}
+    </button>
+  )
+}
+
+/** The card shell: two-team main area + a "My Pick" side panel. */
+export function MatchCardShell({
+  matchId,
+  cardRef,
+  status,
+  label,
+  labelColor = 'dimmed',
+  time,
+  pickPanel,
+  children,
+}: {
+  matchId: number
+  cardRef: (el: HTMLElement | null) => void
+  status: ConnectorState
+  label: string
+  labelColor?: string
+  time: string
+  pickPanel: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <Paper
+      ref={cardRef}
+      data-match={matchId}
+      withBorder
+      radius="md"
+      p={0}
+      style={{ overflow: 'hidden', borderWidth: 2, borderColor: borderColor(status) }}
+    >
+      <Group gap={0} align="stretch" wrap="nowrap">
+        <Box p={8} style={{ flex: 1, minWidth: 0 }}>
+          <Text size="xs" fw={700} c={labelColor} mb={4}>
+            {label}
+          </Text>
+          {children}
+          <Text size="xs" c="dimmed" mt={4}>
+            {time}
+          </Text>
+        </Box>
+        <Stack
+          gap={2}
+          align="center"
+          w={100}
+          p="xs"
+          style={{
+            background: 'var(--mantine-color-gray-0)',
+            borderLeft: '1px solid var(--mantine-color-gray-2)',
+          }}
+        >
+          {pickPanel}
+        </Stack>
+      </Group>
+    </Paper>
+  )
+}
+
+export function ChampionCard({
+  title,
+  team,
+  status,
+}: {
+  title: string
+  team?: string
+  status: ConnectorState
+}) {
+  const border =
+    status === 'correct'
+      ? 'var(--mantine-color-green-6)'
+      : status === 'wrong'
+        ? 'var(--mantine-color-red-6)'
+        : 'transparent'
+  return (
+    <Box
+      style={{
+        borderRadius: 14,
+        padding: '20px 16px',
+        textAlign: 'center',
+        color: '#fff',
+        border: `2px solid ${border}`,
+        background:
+          'radial-gradient(circle, rgba(255,255,255,0.16) 1px, transparent 1.6px) 0 0 / 14px 14px, linear-gradient(160deg, var(--mantine-color-maroon-8), var(--mantine-color-maroon-9))',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+      }}
+    >
+      <Text size="sm" fw={700} style={{ letterSpacing: '0.08em', opacity: 0.92 }}>
+        {title}
+      </Text>
+      <Text fz={26} fw={800} my={6}>
+        {team ?? 'No pick yet'}
+      </Text>
+      <span className={cls.flagBig}>{team ? flagFor(team) : '🏆'}</span>
+      {status === 'correct' && (
+        <Badge color="green" mt="sm" variant="filled">
+          ✓ Champion
+        </Badge>
+      )}
+      {status === 'wrong' && (
+        <Badge color="red" mt="sm" variant="filled">
+          Eliminated
+        </Badge>
+      )}
+    </Box>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Board layout + SVG connectors
+// ---------------------------------------------------------------------------
+
 interface Segment {
   key: string
   d: string
@@ -32,26 +245,37 @@ interface Segment {
 interface BracketBoardProps {
   t: Tournament
   byRound: Record<Round, Match[]>
-  /** Render one match card; attach `cardRef` to the card root for connector measurement. */
   renderCard: (
     match: Match,
     round: RoundInfo,
     cardRef: (el: HTMLElement | null) => void,
   ) => ReactNode
-  /** Color of the connector leaving a given feeder match. */
   connectorState: (feederMatchId: number) => ConnectorState
-  /** Values that, when changed, should retrigger connector measurement. */
   measureDeps: unknown[]
-  /** Optional championship showcase shown in a trailing column. */
   championCard?: ReactNode
 }
 
+function Band({ name, dates, pts }: { name: string; dates: string; pts?: string }) {
+  return (
+    <Box ta="center" pb={8} mb={8} style={{ borderBottom: '2px solid var(--mantine-color-blue-5)' }}>
+      <Text fw={800} fz="lg">
+        {name}
+      </Text>
+      <Text size="xs" c="dimmed">
+        {dates}
+      </Text>
+      <Text size="xs" c="dimmed">
+        {pts ?? ' '}
+      </Text>
+    </Box>
+  )
+}
+
 /**
- * The shared bracket board: round columns with point bands, a championship
- * column, and SVG connector lines from each match's two feeders into the
- * match. Lines are measured from the laid-out DOM (exact at any width,
- * recomputed on resize and when `measureDeps` change). Both the read-only
- * View and the interactive Edit page render their own cards into this layout.
+ * Round columns with point bands, an optional championship column, and SVG
+ * connector lines from each match's two feeders into the match. Lines are
+ * measured from the laid-out DOM (exact at any width; recomputed on resize
+ * and when measureDeps change). View / Edit / Admin render their own cards.
  */
 export function BracketBoard({
   t,
@@ -66,8 +290,6 @@ export function BracketBoard({
   const [segments, setSegments] = useState<Segment[]>([])
   const [size, setSize] = useState({ w: 0, h: 0 })
 
-  // The coloring function changes identity every render; read it through a ref
-  // so it isn't a measure() dependency (which would cause a re-measure loop).
   const stateFnRef = useRef(connectorState)
   stateFnRef.current = connectorState
 
@@ -123,45 +345,35 @@ export function BracketBoard({
     }
   }, [measure])
 
+  const lineClass = (s: ConnectorState) =>
+    s === 'correct' ? `${cls.line} ${cls.lineCorrect}` : s === 'wrong' ? `${cls.line} ${cls.lineWrong}` : cls.line
+
   return (
-    <div className="bracket-scroll">
-      <div className="bracket-grid" ref={contentRef}>
-        <svg
-          className="bracket-lines"
-          width={size.w || '100%'}
-          height={size.h || '100%'}
-          aria-hidden="true"
-        >
+    <div className={cls.scroll}>
+      <div className={cls.grid} ref={contentRef}>
+        <svg className={cls.lines} width={size.w || '100%'} height={size.h || '100%'} aria-hidden="true">
           {segments.map((s) => (
-            <path key={s.key} d={s.d} className={`bline ${s.state}`} fill="none" />
+            <path key={s.key} d={s.d} className={lineClass(s.state)} fill="none" />
           ))}
         </svg>
 
         {t.rounds.map((round) => (
-          <div className="bracket-col" key={round.id}>
-            <div className="round-band">
-              <div className="round-band-name">{round.name}</div>
-              <div className="round-band-dates">{ROUND_DATES[round.id]}</div>
-              <div className="round-band-pts">
-                {round.points} pt{round.points > 1 ? 's' : ''} each
-              </div>
-            </div>
-            <div className="round-matches">
-              {byRound[round.id].map((match) =>
-                renderCard(match, round, setCardRef(match.id)),
-              )}
+          <div className={cls.col} key={round.id}>
+            <Band
+              name={round.name}
+              dates={ROUND_DATES[round.id]}
+              pts={`${round.points} pt${round.points > 1 ? 's' : ''} each`}
+            />
+            <div className={cls.matches}>
+              {byRound[round.id].map((match) => renderCard(match, round, setCardRef(match.id)))}
             </div>
           </div>
         ))}
 
         {championCard && (
-          <div className="bracket-col champ-col">
-            <div className="round-band">
-              <div className="round-band-name">Champion</div>
-              <div className="round-band-dates">July 19</div>
-              <div className="round-band-pts">&nbsp;</div>
-            </div>
-            <div className="round-matches">{championCard}</div>
+          <div className={cls.col}>
+            <Band name="Champion" dates="July 19" />
+            <div className={cls.matches}>{championCard}</div>
           </div>
         )}
       </div>

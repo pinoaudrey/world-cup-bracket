@@ -1,3 +1,4 @@
+import { Anchor, Paper, Stack, Table, Text, Title } from '@mantine/core'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { leaderboard } from '../scoring'
@@ -13,58 +14,59 @@ export function Leaderboard() {
   const decided = Object.keys(results.winners).length
 
   return (
-    <div>
-      <div className="page-head">
-        <h1>Leaderboard</h1>
-        <p className="muted">
-          {brackets.length} player{brackets.length === 1 ? '' : 's'} ·{' '}
-          {decided} of {t.matches.length} matches decided · advancement-based
-          scoring (max 80)
-        </p>
+    <Stack gap="md">
+      <div>
+        <Title order={1}>Leaderboard</Title>
+        <Text c="dimmed" size="sm">
+          {brackets.length} player{brackets.length === 1 ? '' : 's'} · {decided} of{' '}
+          {t.matches.length} matches decided · advancement-based scoring (max 80)
+        </Text>
       </div>
 
       {board.length === 0 ? (
-        <p className="muted">
-          No brackets yet. <Link to="/create">Create one</Link> to get started.
-        </p>
+        <Text c="dimmed">
+          No brackets yet.{' '}
+          <Anchor component={Link} to="/create">
+            Create one
+          </Anchor>{' '}
+          to get started.
+        </Text>
       ) : (
-        <table className="leaderboard">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Player</th>
-              {t.rounds.map((r) => (
-                <th key={r.id} title={`${r.name} — ${r.points} pt each`}>
-                  {r.id}
-                </th>
-              ))}
-              <th>Total</th>
-              <th title="Highest score still reachable given current results">
-                Max
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {board.map((row) => (
-              <tr key={row.username}>
-                <td className="rank">{row.rank}</td>
-                <td>
-                  <Link to={`/view/${encodeURIComponent(row.username)}`}>
-                    {row.username}
-                  </Link>
-                </td>
-                {row.byRound.map((r) => (
-                  <td key={r.round}>{r.earned}</td>
+        <Paper withBorder radius="md" p="md">
+          <Table.ScrollContainer minWidth={520}>
+            <Table striped highlightOnHover verticalSpacing="xs">
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th w={36}>#</Table.Th>
+                  <Table.Th>Player</Table.Th>
+                  {t.rounds.map((r) => (
+                    <Table.Th key={r.id}>{r.id}</Table.Th>
+                  ))}
+                  <Table.Th>Total</Table.Th>
+                  <Table.Th>Max</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {board.map((row) => (
+                  <Table.Tr key={row.username}>
+                    <Table.Td fw={700}>{row.rank}</Table.Td>
+                    <Table.Td>
+                      <Anchor component={Link} to={`/view/${encodeURIComponent(row.username)}`}>
+                        {row.username}
+                      </Anchor>
+                    </Table.Td>
+                    {row.byRound.map((r) => (
+                      <Table.Td key={r.round}>{r.earned}</Table.Td>
+                    ))}
+                    <Table.Td fw={700}>{row.total}</Table.Td>
+                    <Table.Td c="dimmed">{row.maxPossible}</Table.Td>
+                  </Table.Tr>
                 ))}
-                <td>
-                  <strong>{row.total}</strong>
-                </td>
-                <td className="muted">{row.maxPossible}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
+        </Paper>
       )}
-    </div>
+    </Stack>
   )
 }

@@ -5,8 +5,10 @@ competition** among friends for the 2026 FIFA World Cup (Round of 32 onward).
 Friends fill out a bracket, an admin enters the real results, and the app scores
 everyone and shows a leaderboard.
 
-Built with **React + TypeScript + Vite**. No backend — all data lives as JSON
-committed to the repo and is fetched on load. Designed for **GitHub Pages**.
+Built with **React + TypeScript + Vite** and the **[Mantine](https://mantine.dev/)**
+component library (theming + UI components; a small CSS module covers the custom
+bracket layout). No backend — all data lives as JSON committed to the repo and is
+fetched on load. Designed for **GitHub Pages**.
 
 ---
 
