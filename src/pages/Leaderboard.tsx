@@ -43,6 +43,9 @@ export function Leaderboard() {
                     <Table.Th key={r.id}>{r.id}</Table.Th>
                   ))}
                   <Table.Th>Total</Table.Th>
+                  <Table.Th title="Correct picks among decided matches">
+                    % Correct
+                  </Table.Th>
                   <Table.Th>Max</Table.Th>
                 </Table.Tr>
               </Table.Thead>
@@ -59,6 +62,9 @@ export function Leaderboard() {
                       <Table.Td key={r.round}>{r.earned}</Table.Td>
                     ))}
                     <Table.Td fw={700}>{row.total}</Table.Td>
+                    <Table.Td>
+                      {row.pctCorrect === null ? '—' : `${row.pctCorrect}%`}
+                    </Table.Td>
                     <Table.Td c="dimmed">{row.maxPossible}</Table.Td>
                   </Table.Tr>
                 ))}

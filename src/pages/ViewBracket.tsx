@@ -72,21 +72,6 @@ export function ViewBracket() {
     )?.rank
   }, [bracket, brackets, t, results])
 
-  const tally = useMemo(() => {
-    if (!bracket) return { decided: 0, correct: 0 }
-    let decided = 0
-    let correct = 0
-    for (const m of t.matches) {
-      const w = winners[m.id]
-      const p = bracket.picks[m.id]
-      if (w !== undefined && p !== undefined) {
-        decided++
-        if (p === w) correct++
-      }
-    }
-    return { decided, correct }
-  }, [bracket, t, winners])
-
   if (!bracket || !score) {
     return (
       <Stack gap="xs">
@@ -113,14 +98,13 @@ export function ViewBracket() {
     ? pickStatus(finalMatch.id, champPick, winners, eliminated)
     : 'none'
 
-  const pct =
-    tally.decided > 0 ? Math.round((tally.correct / tally.decided) * 100) : null
+  const pct = score.pctCorrect
   const subtitle =
-    tally.decided === 0
+    score.decided === 0
       ? 'No matches decided yet'
-      : tally.correct === tally.decided
+      : score.correct === score.decided
         ? 'Your bracket is perfect so far'
-        : `${tally.correct} of ${tally.decided} picks correct`
+        : `${score.correct} of ${score.decided} picks correct`
 
   const connState = (f: number): ConnectorState => {
     const fp = picks[f]

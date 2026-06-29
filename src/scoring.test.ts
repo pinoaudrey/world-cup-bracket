@@ -62,6 +62,26 @@ describe('worked example from the spec (advancement-based scoring)', () => {
   })
 })
 
+describe('pctCorrect (accuracy among decided picks)', () => {
+  it('is correct picks over decided matches the player actually picked', () => {
+    const results: Results = { winners: { 76: 'Brazil', 78: 'Norway', 91: 'Brazil' } }
+    const bracket: Bracket = {
+      username: 'alice',
+      picks: { 76: 'Brazil', 78: 'Ivory Coast', 91: 'Brazil' },
+    }
+    const s = scoreBracket(bracket, t, results)
+    expect(s.decided).toBe(3) // picked all three decided matches
+    expect(s.correct).toBe(2) // 76 + 91 right, 78 wrong
+    expect(s.pctCorrect).toBe(67) // round(2/3 * 100)
+  })
+
+  it('is null when the player has no decided picks yet', () => {
+    const s = scoreBracket({ username: 'x', picks: {} }, t, { winners: { 73: 'Canada' } })
+    expect(s.decided).toBe(0)
+    expect(s.pctCorrect).toBeNull()
+  })
+})
+
 describe('scoreBracket totals', () => {
   it('a perfect bracket scores the maximum of 80', () => {
     const winners = firstSlotWinners()

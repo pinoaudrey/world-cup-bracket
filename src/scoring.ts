@@ -22,6 +22,12 @@ export interface BracketScore {
   maxPossible: number
   /** maxPossible - total. */
   maxRemaining: number
+  /** Correct picks among the decided matches the player picked. */
+  correct: number
+  /** Decided matches the player made a pick on. */
+  decided: number
+  /** correct / decided as a rounded percentage, or null if none decided yet. */
+  pctCorrect: number | null
 }
 
 /**
@@ -44,6 +50,8 @@ export function scoreBracket(
 
   let total = 0
   let maxPossible = 0
+  let correctTotal = 0
+  let decidedTotal = 0
 
   const byRound: RoundBreakdown[] = t.rounds.map((round) => {
     const matches = t.matches.filter((m) => m.round === round.id)
@@ -55,10 +63,14 @@ export function scoreBracket(
       const winner = winners[m.id]
 
       if (winner !== undefined) {
-        // Decided match: locked in. Counts only if the pick was right.
-        if (pick === winner) {
-          correct += 1
-          roundMaxPossible += 1
+        // Decided match. It only counts toward accuracy if the player picked it.
+        if (pick !== undefined) {
+          decidedTotal += 1
+          if (pick === winner) {
+            correct += 1
+            roundMaxPossible += 1
+            correctTotal += 1
+          }
         }
       } else if (pick !== undefined && !eliminated.has(pick)) {
         // Pending match whose picked team is still alive: still winnable.
@@ -86,6 +98,9 @@ export function scoreBracket(
     byRound,
     maxPossible,
     maxRemaining: maxPossible - total,
+    correct: correctTotal,
+    decided: decidedTotal,
+    pctCorrect: decidedTotal > 0 ? Math.round((correctTotal / decidedTotal) * 100) : null,
   }
 }
 
