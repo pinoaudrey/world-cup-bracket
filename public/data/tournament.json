@@ -1,0 +1,53 @@
+{
+  "rounds": [
+    { "id": "R32", "name": "Round of 32",   "points": 1 },
+    { "id": "R16", "name": "Round of 16",   "points": 2 },
+    { "id": "QF",  "name": "Quarterfinals", "points": 4 },
+    { "id": "SF",  "name": "Semifinals",    "points": 8 },
+    { "id": "F",   "name": "Final",         "points": 16 }
+  ],
+  "teams": [
+    "South Africa", "Canada", "Germany", "Paraguay", "Netherlands", "Morocco",
+    "Brazil", "Japan", "France", "Sweden", "Ivory Coast", "Norway", "Mexico",
+    "Ecuador", "England", "Congo DR", "United States", "Bosnia", "Belgium",
+    "Senegal", "Portugal", "Croatia", "Spain", "Austria", "Switzerland",
+    "Algeria", "Argentina", "Cabo Verde", "Colombia", "Ghana", "Australia", "Egypt"
+  ],
+  "matches": [
+    { "id": 73, "round": "R32", "datetime": "Sun Jun 28, 12:00 PM PT", "teams": ["South Africa", "Canada"] },
+    { "id": 74, "round": "R32", "datetime": "Mon Jun 29, 1:30 PM PT",  "teams": ["Germany", "Paraguay"] },
+    { "id": 75, "round": "R32", "datetime": "Mon Jun 29, 6:00 PM PT",  "teams": ["Netherlands", "Morocco"] },
+    { "id": 76, "round": "R32", "datetime": "Mon Jun 29, 10:00 AM PT", "teams": ["Brazil", "Japan"] },
+    { "id": 77, "round": "R32", "datetime": "Tue Jun 30, 2:00 PM PT",  "teams": ["France", "Sweden"] },
+    { "id": 78, "round": "R32", "datetime": "Tue Jun 30, 10:00 AM PT", "teams": ["Ivory Coast", "Norway"] },
+    { "id": 79, "round": "R32", "datetime": "Tue Jun 30, 6:00 PM PT",  "teams": ["Mexico", "Ecuador"] },
+    { "id": 80, "round": "R32", "datetime": "Wed Jul 1, 9:00 AM PT",   "teams": ["England", "Congo DR"] },
+    { "id": 81, "round": "R32", "datetime": "Wed Jul 1, 5:00 PM PT",   "teams": ["United States", "Bosnia"] },
+    { "id": 82, "round": "R32", "datetime": "Wed Jul 1, TBD PT",       "teams": ["Belgium", "Senegal"] },
+    { "id": 83, "round": "R32", "datetime": "Thu Jul 2, 4:00 PM PT",   "teams": ["Portugal", "Croatia"] },
+    { "id": 84, "round": "R32", "datetime": "Thu Jul 2, 12:00 PM PT",  "teams": ["Spain", "Austria"] },
+    { "id": 85, "round": "R32", "datetime": "Thu Jul 2, 8:00 PM PT",   "teams": ["Switzerland", "Algeria"] },
+    { "id": 86, "round": "R32", "datetime": "Fri Jul 3, 3:00 PM PT",   "teams": ["Argentina", "Cabo Verde"] },
+    { "id": 87, "round": "R32", "datetime": "Fri Jul 3, TBD PT",       "teams": ["Colombia", "Ghana"] },
+    { "id": 88, "round": "R32", "datetime": "Fri Jul 3, 11:00 AM PT",  "teams": ["Australia", "Egypt"] },
+
+    { "id": 89, "round": "R16", "datetime": "Sat Jul 4, 2:00 PM PT",   "feeders": [74, 77] },
+    { "id": 90, "round": "R16", "datetime": "Sat Jul 4, 10:00 AM PT",  "feeders": [73, 75] },
+    { "id": 91, "round": "R16", "datetime": "Sun Jul 5, 1:00 PM PT",   "feeders": [76, 78] },
+    { "id": 92, "round": "R16", "datetime": "Sun Jul 5, 5:00 PM PT",   "feeders": [79, 80] },
+    { "id": 93, "round": "R16", "datetime": "Mon Jul 6, 12:00 PM PT",  "feeders": [83, 84] },
+    { "id": 94, "round": "R16", "datetime": "Mon Jul 6, 5:00 PM PT",   "feeders": [81, 82] },
+    { "id": 95, "round": "R16", "datetime": "Tue Jul 7, 9:00 AM PT",   "feeders": [86, 88] },
+    { "id": 96, "round": "R16", "datetime": "Tue Jul 7, 1:00 PM PT",   "feeders": [85, 87] },
+
+    { "id": 97,  "round": "QF", "datetime": "Thu Jul 9, 1:00 PM PT",   "feeders": [89, 90] },
+    { "id": 98,  "round": "QF", "datetime": "Fri Jul 10, 12:00 PM PT", "feeders": [93, 94] },
+    { "id": 99,  "round": "QF", "datetime": "Sat Jul 11, 2:00 PM PT",  "feeders": [91, 92] },
+    { "id": 100, "round": "QF", "datetime": "Sat Jul 11, 6:00 PM PT",  "feeders": [95, 96] },
+
+    { "id": 101, "round": "SF", "datetime": "Tue Jul 14, 12:00 PM PT", "feeders": [97, 98] },
+    { "id": 102, "round": "SF", "datetime": "Wed Jul 15, 12:00 PM PT", "feeders": [99, 100] },
+
+    { "id": 103, "round": "F",  "datetime": "Sun Jul 19, 12:00 PM PT", "feeders": [101, 102] }
+  ]
+}
