@@ -3,6 +3,7 @@ import {
   AppShell,
   Box,
   Container,
+  Flex,
   Group,
   Loader,
   Text,
@@ -51,7 +52,7 @@ export default function App() {
   const { loading, error, tournament } = useStore()
 
   return (
-    <AppShell header={{ height: 56 }} padding="md">
+    <AppShell header={{ height: { base: 84, sm: 56 } }} padding="md">
       <AppShell.Header
         withBorder={false}
         style={{
@@ -64,8 +65,23 @@ export default function App() {
         }}
       >
         <Container size="lg" h="100%">
-          <Group h="100%" justify="space-between" wrap="nowrap">
-            <Text fw={700} c="white" style={{ whiteSpace: 'nowrap' }}>
+          {/* Side-by-side on desktop; on small screens the title stacks above
+              the nav tabs so they're reachable (a single nowrap row pushed the
+              Admin tab off-screen on mobile). */}
+          <Flex
+            h="100%"
+            direction={{ base: 'column', sm: 'row' }}
+            justify={{ base: 'center', sm: 'space-between' }}
+            align="center"
+            gap={{ base: 4, sm: 'lg' }}
+            wrap="nowrap"
+          >
+            <Text
+              fw={700}
+              c="white"
+              fz={{ base: 'sm', sm: 'md' }}
+              style={{ whiteSpace: 'nowrap' }}
+            >
               ⚽ World Cup 2026 Bracket Challenge
             </Text>
             <Group gap="lg" wrap="nowrap">
@@ -73,7 +89,7 @@ export default function App() {
                 <HeaderLink key={l.to} {...l} />
               ))}
             </Group>
-          </Group>
+          </Flex>
         </Container>
         {/* World Cup color-block ribbon evoking the "26" branding. */}
         <Box pos="absolute" left={0} right={0} bottom={0} h={5} style={{ background: WC_RIBBON }} />

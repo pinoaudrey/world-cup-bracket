@@ -1,4 +1,14 @@
-import { Badge, Box, Group, Paper, Stack, Text } from '@mantine/core'
+import {
+  Badge,
+  Box,
+  Button,
+  Group,
+  Paper,
+  SegmentedControl,
+  Stack,
+  Text,
+} from '@mantine/core'
+import { useMediaQuery } from '@mantine/hooks'
 import {
   useCallback,
   useLayoutEffect,
@@ -285,6 +295,11 @@ export function BracketBoard({
   measureDeps,
   championCard,
 }: BracketBoardProps) {
+  // On phones the side-by-side tree doesn't fit, so we page through one round
+  // at a time (see MobileBracket). 48em == Mantine's `sm` breakpoint.
+  const isMobile = useMediaQuery('(max-width: 48em)', false, {
+    getInitialValueInEffect: false,
+  })
   const contentRef = useRef<HTMLDivElement>(null)
   const cardRefs = useRef(new Map<number, HTMLElement>())
   const [segments, setSegments] = useState<Segment[]>([])
@@ -345,6 +360,17 @@ export function BracketBoard({
     }
   }, [measure])
 
+  if (isMobile) {
+    return (
+      <MobileBracket
+        t={t}
+        byRound={byRound}
+        renderCard={renderCard}
+        championCard={championCard}
+      />
+    )
+  }
+
   const lineClass = (s: ConnectorState) =>
     s === 'correct' ? `${cls.line} ${cls.lineCorrect}` : s === 'wrong' ? `${cls.line} ${cls.lineWrong}` : cls.line
 
@@ -378,5 +404,105 @@ export function BracketBoard({
         )}
       </div>
     </div>
+  )
+}
+
+/**
+ * Mobile bracket: one round per "page", switched by tapping the segmented
+ * control or swiping left/right. The champion (when provided) is the last
+ * page. No SVG connectors — a single column has nothing to connect.
+ */
+function MobileBracket({
+  t,
+  byRound,
+  renderCard,
+  championCard,
+}: Pick<BracketBoardProps, 't' | 'byRound' | 'renderCard' | 'championCard'>) {
+  const [page, setPage] = useState(0)
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
+
+  const total = t.rounds.length + (championCard ? 1 : 0)
+  const active = Math.min(page, total - 1)
+  const go = (next: number) => setPage(Math.max(0, Math.min(next, total - 1)))
+  const isChamp = !!championCard && active === t.rounds.length
+  const round = isChamp ? null : t.rounds[active]
+
+  const segData = [
+    ...t.rounds.map((r, i) => ({ value: String(i), label: r.id })),
+    ...(championCard ? [{ value: String(t.rounds.length), label: '🏆' }] : []),
+  ]
+
+  const noRef = () => {}
+
+  return (
+    <Stack gap="sm">
+      <SegmentedControl
+        fullWidth
+        size="xs"
+        value={String(active)}
+        onChange={(v) => go(Number(v))}
+        data={segData}
+        aria-label="Choose round"
+      />
+
+      <div
+        onTouchStart={(e) => {
+          const tch = e.touches[0]
+          touchStart.current = { x: tch.clientX, y: tch.clientY }
+        }}
+        onTouchEnd={(e) => {
+          const s = touchStart.current
+          touchStart.current = null
+          if (!s) return
+          const tch = e.changedTouches[0]
+          const dx = tch.clientX - s.x
+          const dy = tch.clientY - s.y
+          // Horizontal flick only — ignore mostly-vertical scrolls.
+          if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) {
+            go(active + (dx < 0 ? 1 : -1))
+          }
+        }}
+      >
+        {isChamp ? (
+          <Stack gap="sm">
+            <Band name="Champion" dates="July 19" />
+            {championCard}
+          </Stack>
+        ) : (
+          <Stack gap="sm">
+            <Band
+              name={round!.name}
+              dates={ROUND_DATES[round!.id]}
+              pts={`${round!.points} pt${round!.points > 1 ? 's' : ''} each`}
+            />
+            <Stack gap="sm">
+              {byRound[round!.id].map((match) => renderCard(match, round!, noRef))}
+            </Stack>
+          </Stack>
+        )}
+      </div>
+
+      <Group justify="space-between" align="center" wrap="nowrap">
+        <Button
+          variant="subtle"
+          size="compact-sm"
+          disabled={active === 0}
+          onClick={() => go(active - 1)}
+        >
+          ‹ Prev
+        </Button>
+        <Text size="xs" c="dimmed">
+          Swipe to change rounds · {active + 1}/{total}
+        </Text>
+        <Button
+          variant="subtle"
+          size="compact-sm"
+          disabled={active === total - 1}
+          onClick={() => go(active + 1)}
+        >
+          Next ›
+        </Button>
+      </Group>
+    </Stack>
   )
 }
