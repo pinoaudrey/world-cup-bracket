@@ -1,6 +1,7 @@
 import {
   Alert,
   AppShell,
+  Box,
   Container,
   Group,
   Loader,
@@ -8,6 +9,7 @@ import {
 } from '@mantine/core'
 import { Navigate, NavLink as RouterNavLink, Route, Routes } from 'react-router-dom'
 import { useStore } from './store'
+import { WC_RIBBON } from './theme'
 import { Admin } from './pages/Admin'
 import { BracketsList } from './pages/BracketsList'
 import { EditBracket } from './pages/EditBracket'
@@ -52,7 +54,7 @@ export default function App() {
 
   return (
     <AppShell header={{ height: 56 }} padding="md">
-      <AppShell.Header bg="maroon.8" withBorder={false}>
+      <AppShell.Header bg="blue.7" withBorder={false}>
         <Container size="lg" h="100%">
           <Group h="100%" justify="space-between" wrap="nowrap">
             <Text fw={700} c="white" style={{ whiteSpace: 'nowrap' }}>
@@ -65,6 +67,8 @@ export default function App() {
             </Group>
           </Group>
         </Container>
+        {/* World Cup color-block ribbon evoking the "26" branding. */}
+        <Box pos="absolute" left={0} right={0} bottom={0} h={5} style={{ background: WC_RIBBON }} />
       </AppShell.Header>
 
       <AppShell.Main bg="gray.0">

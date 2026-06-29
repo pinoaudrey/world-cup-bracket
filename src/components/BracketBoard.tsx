@@ -207,7 +207,7 @@ export function ChampionCard({
         color: '#fff',
         border: `2px solid ${border}`,
         background:
-          'radial-gradient(circle, rgba(255,255,255,0.16) 1px, transparent 1.6px) 0 0 / 14px 14px, linear-gradient(160deg, var(--mantine-color-maroon-8), var(--mantine-color-maroon-9))',
+          'radial-gradient(circle, rgba(255,255,255,0.16) 1px, transparent 1.6px) 0 0 / 14px 14px, linear-gradient(160deg, var(--mantine-color-blue-7), var(--mantine-color-green-8))',
         boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
       }}
     >
