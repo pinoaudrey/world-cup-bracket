@@ -14,6 +14,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import {
   bracketOrder,
   isComplete,
+  nextEmptyPick,
   participants,
   pickCount,
   setPick,
@@ -38,6 +39,9 @@ export function EditBracket() {
   const [username, setUsername] = useState('')
   const [picks, setPicks] = useState<Record<number, string>>({})
   const [saved, setSaved] = useState(false)
+  // Fresh object per pick so BracketBoard re-fires its scroll/focus effect even
+  // when the next empty match happens to be the same as last time.
+  const [focusTarget, setFocusTarget] = useState<{ id: number } | null>(null)
 
   useEffect(() => {
     if (usernameParam) {
@@ -61,7 +65,12 @@ export function EditBracket() {
 
   function choose(match: Match, team: string) {
     setSaved(false)
-    setPicks((prev) => setPick(prev, match.id, team, t))
+    const next = setPick(picks, match.id, team, t)
+    setPicks(next)
+    // Jump to the next match that still needs a pick (skips matches whose teams
+    // aren't decided yet; null once the bracket is complete).
+    const nextId = nextEmptyPick(next, t, match.id)
+    setFocusTarget(nextId != null ? { id: nextId } : null)
   }
 
   function handleSave() {
@@ -134,6 +143,7 @@ export function EditBracket() {
         byRound={byRound}
         connectorState={() => 'neutral'}
         measureDeps={[picks]}
+        focusTarget={focusTarget}
         renderCard={(match, round, cardRef) => {
           const [a, b] = participants(match, picks)
           const pick = picks[match.id]

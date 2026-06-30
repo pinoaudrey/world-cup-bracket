@@ -11,6 +11,7 @@ import {
 import { useMediaQuery } from '@mantine/hooks'
 import {
   useCallback,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -263,6 +264,13 @@ interface BracketBoardProps {
   connectorState: (feederMatchId: number) => ConnectorState
   measureDeps: unknown[]
   championCard?: ReactNode
+  /**
+   * Editor auto-advance: when this changes to a match id, that card is brought
+   * into view (and on mobile its round page is shown) and its first clickable
+   * slot is focused. Passed a fresh object each time so re-selecting the same
+   * target still re-fires. Omit (View/Admin) to disable.
+   */
+  focusTarget?: { id: number } | null
 }
 
 function Band({ name, dates, pts }: { name: string; dates: string; pts?: string }) {
@@ -294,6 +302,7 @@ export function BracketBoard({
   connectorState,
   measureDeps,
   championCard,
+  focusTarget,
 }: BracketBoardProps) {
   // On phones the side-by-side tree doesn't fit, so we page through one round
   // at a time (see MobileBracket). 48em == Mantine's `sm` breakpoint.
@@ -360,6 +369,21 @@ export function BracketBoard({
     }
   }, [measure])
 
+  // Desktop auto-advance: bring the next-empty card into view and focus its
+  // first selectable team. On mobile cardRefs is empty (MobileBracket renders
+  // only the active page with no refs), so this no-ops there — paging is
+  // handled inside MobileBracket instead.
+  useEffect(() => {
+    if (!focusTarget) return
+    // Runs after the post-pick commit, so the card (which always exists on
+    // desktop) is laid out — no rAF needed.
+    const el = cardRefs.current.get(focusTarget.id)
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+    const btn = el.querySelector<HTMLButtonElement>('button:not([disabled])')
+    btn?.focus({ preventScroll: true })
+  }, [focusTarget])
+
   if (isMobile) {
     return (
       <MobileBracket
@@ -367,6 +391,7 @@ export function BracketBoard({
         byRound={byRound}
         renderCard={renderCard}
         championCard={championCard}
+        focusTarget={focusTarget}
       />
     )
   }
@@ -417,13 +442,28 @@ function MobileBracket({
   byRound,
   renderCard,
   championCard,
-}: Pick<BracketBoardProps, 't' | 'byRound' | 'renderCard' | 'championCard'>) {
+  focusTarget,
+}: Pick<
+  BracketBoardProps,
+  't' | 'byRound' | 'renderCard' | 'championCard' | 'focusTarget'
+>) {
   const [page, setPage] = useState(0)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
 
   const total = t.rounds.length + (championCard ? 1 : 0)
   const active = Math.min(page, total - 1)
   const go = (next: number) => setPage(Math.max(0, Math.min(next, total - 1)))
+
+  // Auto-advance: flip to the page of the round holding the next-empty pick.
+  useEffect(() => {
+    if (!focusTarget) return
+    const match = t.matches.find((m) => m.id === focusTarget.id)
+    if (!match) return
+    const idx = t.rounds.findIndex((r) => r.id === match.round)
+    if (idx >= 0) go(idx)
+    // go is stable enough for this one-shot effect; depend only on the target.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusTarget])
   const isChamp = !!championCard && active === t.rounds.length
   const round = isChamp ? null : t.rounds[active]
 

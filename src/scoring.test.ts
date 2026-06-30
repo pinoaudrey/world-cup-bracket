@@ -4,7 +4,9 @@ import {
   bracketOrder,
   eliminatedTeams,
   isComplete,
+  nextEmptyPick,
   participants,
+  pickSequence,
   pruneInvalid,
   setPick,
 } from './bracket'
@@ -191,6 +193,45 @@ describe('bracketOrder (tree layout ordering)', () => {
         expect(Math.abs(prevIds.indexOf(a) - prevIds.indexOf(b))).toBe(1)
       }
     }
+  })
+})
+
+describe('nextEmptyPick (editor auto-advance)', () => {
+  it('starts at the first match in reading order when nothing is picked', () => {
+    // pickSequence flattens bracketOrder; R32 leads, top card first.
+    const first = pickSequence(t)[0].id
+    expect(nextEmptyPick({}, t)).toBe(first)
+    expect(first).toBe(74)
+  })
+
+  it('advances to the next empty match after the one just picked', () => {
+    const picks = setPick({}, 74, participants(t.matches.find((m) => m.id === 74)!, {})[0]!, t)
+    // R32 reading order is [74, 77, ...] so 77 is next.
+    expect(nextEmptyPick(picks, t, 74)).toBe(77)
+  })
+
+  it('skips matches whose participants are not decided yet', () => {
+    // Only one R32 pick: the R16 match it feeds (89, feeders 74 & 77) is not
+    // yet pickable, so we stay in R32 rather than jumping to it.
+    const picks = setPick({}, 74, 'Germany', t)
+    const next = nextEmptyPick(picks, t, 74)
+    expect(next).toBe(77)
+    expect(next).not.toBe(89)
+  })
+
+  it('crosses into the next round once it becomes pickable', () => {
+    // Fill every R32 (first slot wins). After the last R32 card, the first R16
+    // match (89, fed by 74 & 77) now has both teams, so we advance to it.
+    const r32: Record<number, string> = {}
+    for (const m of t.matches) {
+      if (m.round === 'R32') r32[m.id] = participants(m, {})[0]!
+    }
+    const lastR32 = [...pickSequence(t)].reverse().find((m) => m.round === 'R32')!.id
+    expect(nextEmptyPick(r32, t, lastR32)).toBe(89)
+  })
+
+  it('returns null when the bracket is complete', () => {
+    expect(nextEmptyPick(firstSlotWinners(), t)).toBeNull()
   })
 })
 

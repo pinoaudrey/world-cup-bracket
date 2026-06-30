@@ -100,6 +100,42 @@ export function isComplete(picks: Record<number, string>, t: Tournament): boolea
   return t.matches.every((m) => picks[m.id] !== undefined)
 }
 
+/**
+ * Matches flattened in the order they're drawn on the board: each round's
+ * column top-to-bottom (bracketOrder), rounds left-to-right. This is the
+ * reading order used to walk from one pick to the next.
+ */
+export function pickSequence(t: Tournament): Match[] {
+  const ordered = bracketOrder(t)
+  return ROUND_ORDER.flatMap((r) => ordered[r])
+}
+
+/**
+ * The next match that still needs a pick, for auto-advancing the editor after
+ * a selection. Scans the board's reading order starting just after
+ * `afterMatchId` (or from the top when omitted), wrapping around so any earlier
+ * skipped match is still reached. Only returns a match that is pickable *now* —
+ * both of its participants are already decided by the current picks — so we
+ * never jump to a card whose teams aren't known yet. Returns null when every
+ * pickable match is filled.
+ */
+export function nextEmptyPick(
+  picks: Record<number, string>,
+  t: Tournament,
+  afterMatchId?: number,
+): number | null {
+  const seq = pickSequence(t)
+  const n = seq.length
+  const start = afterMatchId != null ? seq.findIndex((m) => m.id === afterMatchId) : -1
+  for (let i = 1; i <= n; i++) {
+    const m = seq[(start + i) % n]
+    if (picks[m.id] !== undefined) continue
+    const [a, b] = participants(m, picks)
+    if (a !== null && b !== null) return m.id
+  }
+  return null
+}
+
 export function pickCount(picks: Record<number, string>, t: Tournament): number {
   return t.matches.filter((m) => picks[m.id] !== undefined).length
 }
