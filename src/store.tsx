@@ -11,18 +11,18 @@ import {
 import { pruneInvalid } from './bracket'
 import type { Bracket, Brackets, Results, Tournament } from './types'
 
-const BRACKETS_KEY = 'wc2026.brackets'
-const RESULTS_KEY = 'wc2026.results'
-
 /**
  * Persistence model (static hosting, no backend):
  *  - tournament.json is fixed structure, always loaded from the committed file.
- *  - brackets.json / results.json are the *published baseline*, fetched on load.
- *  - Local edits are mirrored to localStorage so a refresh doesn't lose work,
- *    and that working copy takes precedence over the fetched baseline.
- *  - The admin EXPORTS the working copy as JSON and commits it to the repo;
- *    that commit is what publishes new data to everyone. Nothing here writes
- *    to the server — editing the live site only changes your own browser.
+ *  - brackets.json / results.json are the *published baseline*, fetched fresh
+ *    on every load — what's committed to the repo is exactly what you see.
+ *  - Edits live in memory only. In dev they're written straight back to the
+ *    JSON files on disk (see devSaveFile) so the admin can just `git push`; in
+ *    the production build nothing is persisted, so editing the live site is a
+ *    throwaway local preview that a refresh discards. We intentionally do NOT
+ *    cache to localStorage: a stale local copy would otherwise shadow the
+ *    published data and hide brackets that are actually committed.
+ *  - The admin publishes by committing the updated JSON to the repo.
  */
 interface StoreValue {
   tournament: Tournament | null
@@ -54,23 +54,6 @@ async function fetchJson<T>(file: string): Promise<T> {
   const res = await fetch(dataUrl(file))
   if (!res.ok) throw new Error(`Failed to load ${file}: ${res.status}`)
   return (await res.json()) as T
-}
-
-function readLocal<T>(key: string): T | null {
-  try {
-    const raw = localStorage.getItem(key)
-    return raw ? (JSON.parse(raw) as T) : null
-  } catch {
-    return null
-  }
-}
-
-function writeLocal(key: string, value: unknown): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    /* storage full / unavailable — non-fatal, edits just won't persist */
-  }
 }
 
 // Dev only: persist a data file to disk via the Vite dev middleware so the
@@ -107,9 +90,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const baselineResults = await fetchJson<Results>('results.json')
         if (cancelled) return
         setTournament(t)
-        // Local working copy wins over the published baseline if present.
-        setBrackets(readLocal<Brackets>(BRACKETS_KEY) ?? baselineBrackets)
-        setResults(readLocal<Results>(RESULTS_KEY) ?? baselineResults)
+        // Always show the committed/published data — no local cache to shadow it.
+        setBrackets(baselineBrackets)
+        setResults(baselineResults)
       } catch (e) {
         if (!cancelled) setError((e as Error).message)
       } finally {
@@ -121,20 +104,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Mirror changes to localStorage and (in dev) to the JSON files on disk.
-  // The hydration refs skip the first run right after load so we don't rewrite
-  // the files with the data we just read from them.
+  // In dev, mirror changes straight to the JSON files on disk so the admin can
+  // edit on localhost and `git push`. The hydration refs skip the first run
+  // right after load so we don't rewrite the files with the data we just read.
   const bracketsHydrated = useRef(false)
   const resultsHydrated = useRef(false)
   useEffect(() => {
     if (loading) return
-    writeLocal(BRACKETS_KEY, brackets)
     if (bracketsHydrated.current) devSaveFile('brackets', brackets)
     else bracketsHydrated.current = true
   }, [brackets, loading])
   useEffect(() => {
     if (loading) return
-    writeLocal(RESULTS_KEY, results)
     if (resultsHydrated.current) devSaveFile('results', results)
     else resultsHydrated.current = true
   }, [results, loading])
@@ -219,8 +200,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const resetToPublished = useCallback(async () => {
-    localStorage.removeItem(BRACKETS_KEY)
-    localStorage.removeItem(RESULTS_KEY)
     const [b, r] = await Promise.all([
       fetchJson<Brackets>('brackets.json'),
       fetchJson<Results>('results.json'),
